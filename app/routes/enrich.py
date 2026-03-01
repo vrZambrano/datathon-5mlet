@@ -43,10 +43,18 @@ async def generate_report(request: ReportGenerationRequest):
             "idade": request.idade or 0,
             "pedra": request.pedra,
             "inde": request.inde,
+            "ieg": request.ieg if request.ieg is not None else 0,
+            "ida": request.ida if request.ida is not None else 0,
+            "ips": request.ips if request.ips is not None else 0,
+            "iaa": request.iaa if request.iaa is not None else 0,
+            "ian": request.ian if request.ian is not None else 0,
+            "ipv": request.ipv if request.ipv is not None else 0,
+            "ipp": request.ipp if request.ipp is not None else 0,
             "anos_no_programa": request.anos_no_programa or 1,
             "tendencia_inde": request.tendencia_inde or "estável",
             "cluster_nome": request.cluster_nome or "Não identificado",
             "risco_percentual": int(request.risco_percentual or 0),
+            "risco_classe": request.risco_classe or "N/A",
             "feedback_texto": request.feedback_texto or "Não disponível"
         }
 

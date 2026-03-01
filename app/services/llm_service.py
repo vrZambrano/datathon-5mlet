@@ -59,40 +59,56 @@ class LLMService:
         """Retorna o template padrão de relatório."""
         return """Você é um assistente pedagógico especializado em educação para jovens em vulnerabilidade social, no contexto da ONG Passos Mágicos.
 
-ALUNO: {nome}
-IDADE: {idade} anos
-PEDRA ATUAL: {pedra} (INDE: {inde:.1f})
+DADOS DO ALUNO:
+- Nome: {nome}
+- Idade: {idade} anos
+- Pedra Atual: {pedra} (INDE: {inde:.1f})
+
+INDICADORES EDUCACIONAIS:
+- IEG (Engajamento): {ieg:.1f}
+- IDA (Desempenho Acadêmico): {ida:.1f}
+- IPS (Psicossocial): {ips:.1f}
+- IAA (Autoavaliação): {iaa:.1f}
+- IAN (Adequação ao Nível): {ian:.1f}
+- IPV (Ponto de Virada): {ipv:.1f}
+- IPP (Psicopedagógico): {ipp:.1f}
+
+RESULTADOS DOS MODELOS PREDITIVOS (Machine Learning):
+- Predição de Risco de Queda: {risco_classe} ({risco_percentual}%)
+- Cluster (Perfil Comportamental): {cluster_nome}
 
 HISTÓRICO:
 - Anos no programa: {anos_no_programa}
 - Tendência do INDE: {tendencia_inde}
-- Perfil (Cluster): {cluster_nome}
-- Risco de queda no próximo ano: {risco_percentual}%
 
 FEEDBACKS ANTERIORES:
 {feedback_texto}
 
-Por favor, gere um relatório para o professor com o seguinte formato:
+Com base nos dados acima, incluindo os resultados dos modelos de Machine Learning (predição de risco e clusterização), gere um relatório pedagógico para o professor com o seguinte formato:
 
 ## Resumo do Perfil
-[2-3 frases acolhedoras sobre o aluno]
+[2-3 frases acolhedoras sobre o aluno, mencionando o nível de risco predito e o perfil comportamental identificado pelo modelo de clusterização]
+
+## Análise dos Indicadores
+[Análise breve dos indicadores educacionais, destacando pontos acima e abaixo da média (5.0), e como se relacionam com o risco predito]
 
 ## Pontos Fortes
-1. [Ponto forte 1]
+1. [Ponto forte 1 - baseado nos indicadores]
 2. [Ponto forte 2]
 3. [Ponto forte 3]
 
 ## Pontos de Atenção
-1. [Ponto que requer atenção 1]
+1. [Ponto que requer atenção 1 - considerar o risco predito]
 2. [Ponto que requer atenção 2]
 3. [Ponto que requer atenção 3]
 
 ## Recomendações para o Professor
-1. [Recomendação concreta e acionável 1]
+1. [Recomendação concreta e acionável 1 - alinhada ao cluster e risco]
 2. [Recomendação concreta e acionável 2]
 3. [Recomendação concreta e acionável 3]
 
 Use linguagem clara, empática e construtiva. Evite jargões técnicos.
+As recomendações devem ser práticas e considerar o nível de risco e perfil do aluno.
 """
 
     async def generate_student_report(
@@ -123,7 +139,7 @@ Use linguagem clara, empática e construtiva. Evite jargões técnicos.
         except KeyError as e:
             logger.warning(f"Campo faltando nos dados: {e}")
             # Preenche campos vazios
-            for key in ["idade", "anos_no_programa", "tendencia_inde", "cluster_nome", "risco_percentual", "feedback_texto"]:
+            for key in ["idade", "anos_no_programa", "tendencia_inde", "cluster_nome", "risco_percentual", "risco_classe", "feedback_texto", "ieg", "ida", "ips", "iaa", "ian", "ipv", "ipp"]:
                 if key not in aluno_data:
                     aluno_data[key] = "N/A"
             prompt = prompt_template.format(**aluno_data)

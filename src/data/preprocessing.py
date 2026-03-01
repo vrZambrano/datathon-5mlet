@@ -95,11 +95,19 @@ def extract_pedra_value(pedra_str: str) -> Optional[str]:
 
     pedra_str = str(pedra_str).strip().upper()
 
-    # Normaliza acentos
-    pedra_str = pedra_str.replace("Á", "A").replace("Ã", "A")
+    # Remove todos os acentos para comparação uniforme
+    import unicodedata
+    def _strip_accents(s: str) -> str:
+        return "".join(
+            c for c in unicodedata.normalize("NFD", s)
+            if unicodedata.category(c) != "Mn"
+        )
+
+    pedra_norm = _strip_accents(pedra_str)
 
     for valor in PEDRA_VALORES:
-        if valor.upper() in pedra_str:
+        valor_norm = _strip_accents(valor.upper())
+        if valor_norm in pedra_norm:
             return valor
 
     return None

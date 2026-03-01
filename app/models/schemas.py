@@ -41,6 +41,8 @@ class RiskPredictionRequest(AlunoFeaturesBase):
     delta_ida: Optional[float] = None
 
     anos_no_programa: Optional[int] = Field(None, ge=1, description="Anos no programa")
+    tendencia_inde: Optional[float] = Field(None, description="Tendência do INDE (coeficiente linear)")
+    pedras_mudadas_total: Optional[float] = Field(None, ge=0, description="Total acumulado de mudanças de pedra")
     pedra: Optional[str] = Field(None, description="Pedra atual (Quartzo, Ágata, Ametista, Topázio)")
 
     @field_validator("pedra")
@@ -68,9 +70,19 @@ class ReportGenerationRequest(BaseModel):
     pedra: str = Field(..., description="Pedra atual")
     inde: float = Field(..., ge=0, le=10, description="INDE atual")
 
+    # Indicadores
+    ieg: Optional[float] = Field(None, ge=0, le=10, description="Indicador de Engajamento")
+    ida: Optional[float] = Field(None, ge=0, le=10, description="Indicador de Desempenho Acadêmico")
+    ips: Optional[float] = Field(None, ge=0, le=10, description="Indicador Psicossocial")
+    iaa: Optional[float] = Field(None, ge=0, le=10, description="Indicador de Autoavaliação")
+    ian: Optional[float] = Field(None, ge=0, le=10, description="Indicador de Adequação ao Nível")
+    ipv: Optional[float] = Field(None, ge=0, le=10, description="Indicador de Ponto de Virada")
+    ipp: Optional[float] = Field(None, ge=0, le=10, description="Indicador Psicopedagógico")
+
     # Informações adicionais
     cluster_nome: Optional[str] = Field(None, description="Nome do cluster")
     risco_percentual: Optional[float] = Field(None, ge=0, le=100, description="Risco de queda (%)")
+    risco_classe: Optional[str] = Field(None, description="Classe de risco (BAIXO, MEDIO, ALTO)")
 
     # Histórico
     anos_no_programa: Optional[int] = Field(None, ge=1, description="Anos no programa")

@@ -66,6 +66,8 @@ async def predict_risk(request: RiskPredictionRequest):
             "delta_IEG": request.delta_ieg if request.delta_ieg is not None else 0,
             "delta_IDA": request.delta_ida if request.delta_ida is not None else 0,
             "anos_no_programa": request.anos_no_programa if request.anos_no_programa is not None else 1,
+            "tendencia_INDE": request.tendencia_inde if request.tendencia_inde is not None else 0.0,
+            "pedras_mudadas_total": request.pedras_mudadas_total if request.pedras_mudadas_total is not None else 0.0,
         }
 
         # Calcula deltas se necessário
