@@ -34,7 +34,9 @@ Este sistema utiliza Inteligência Artificial para auxiliar professores e educad
 | **Frontend** | Streamlit |
 | **ML** | XGBoost, Scikit-learn, K-Means |
 | **MLOps** | MLflow, Docker |
+| **Monitoramento** | Evidently AI (Data Drift) |
 | **LLM** | Claude 3.5 Sonnet via OpenRouter |
+| **Testes** | pytest (141 testes, 85%+ cobertura) |
 
 ## 📦 Estrutura do Projeto
 
@@ -42,26 +44,36 @@ Este sistema utiliza Inteligência Artificial para auxiliar professores e educad
 datathon-5mlet/
 ├── app/                    # API FastAPI
 │   ├── main.py            # Entry point
-│   ├── routes/            # Endpoints (/predict, /enrich)
+│   ├── routes/            # Endpoints (/predict, /enrich, /health)
 │   ├── models/            # Pydantic schemas
-│   ├── services/          # ML e LLM services
+│   ├── services/          # LLM service
 │   └── core/              # Config e logger
 ├── frontend/              # Streamlit
-│   └── main.py            # Aplicação web
+│   └── main.py            # Aplicação web (dashboard, predições, relatórios)
 ├── src/                   # ML Pipeline
 │   ├── data/              # Loader, preprocessing, feature engineering
 │   ├── models/            # Train classifier e clustering
+│   ├── monitoring/        # Data drift (Evidently AI)
 │   └── utils/             # Constants e helpers
 ├── scripts/               # Scripts de execução
 │   └── train_all.py       # Treina todos os modelos
+├── tests/                 # Testes unitários (141 testes, 85%+ cobertura)
+│   ├── test_data/         # Testes de loader, preprocessing, feature eng.
+│   ├── test_models/       # Testes de classifier e clustering
+│   ├── test_api/          # Testes de endpoints
+│   ├── test_services/     # Testes de LLM service
+│   ├── test_monitoring/   # Testes de drift
+│   └── test_core/         # Testes de config e logger
 ├── docker/                # Docker configuration
-│   └── docker-compose.yml # Orquestração
+│   ├── docker-compose.yml # Orquestração (5 serviços)
+│   ├── Dockerfile.api     # Build da API
+│   └── Dockerfile.streamlit # Build do frontend
 ├── data/                  # Datasets (não versionado)
 ├── models/                # Modelos treinados (.pkl)
 ├── prompts/               # Templates para LLM
 ├── requirements.txt       # Dependências Python
-├── .env.example          # Variáveis de ambiente
-└── PLANO_CLAUDE.md       # Plano detalhado do projeto
+├── pyproject.toml         # Configuração pytest + coverage
+└── .env.example           # Variáveis de ambiente
 ```
 
 ## 🚀 Guia de Instalação Rápida
@@ -144,9 +156,14 @@ Serviços:
 |--------|----------|-----------|
 | GET | `/` | Informações da API |
 | GET | `/health` | Health check |
+| GET | `/health/metrics` | Uptime, status dos modelos, ambiente |
+| GET | `/health/stats` | Estatísticas do dashboard (INDE médio, distribuição de pedras, clusters) |
+| GET | `/health/students` | Lista de alunos com indicadores (filtro por `?ano=`) |
+| GET | `/health/drift` | Análise de data drift entre anos (Evidently AI) |
 | POST | `/predict/risk` | Predição de risco de queda |
 | POST | `/predict/cluster` | Predição de cluster/perfil |
 | POST | `/enrich/report` | Geração de relatório LLM |
+| GET | `/enrich/models` | Modelos LLM disponíveis |
 
 ### Exemplo de Uso - Predição de Risco
 
@@ -178,29 +195,69 @@ curl -X POST http://localhost:8000/predict/risk \
 }
 ```
 
+## 📊 Métricas dos Modelos
+
+### Classificador de Risco (XGBoost)
+- **Modelo:** XGBoost Classifier
+- **F1-Score:** 0.844
+- **ROC AUC:** 0.888
+- **Precisão:** 0.848
+- **Recall:** 0.844
+- **Features (11):** INDE, IEG, IDA, IPS, IAA, delta_INDE, delta_IEG, delta_IDA, anos_no_programa, tendencia_INDE, pedras_mudadas_total
+- **Target:** Queda de pedra no próximo ano
+- **Split:** GroupShuffleSplit (80/20) por aluno para evitar vazamento
+
+### Clusterização de Perfis (K-Means)
+- **Modelo:** K-Means (k=4)
+- **Silhouette Score:** 0.352
+- **Davies-Bouldin Index:** 1.02
+- **Features (5):** INDE, IEG, IDA, IPS, IAA
+- **Clusters identificados:**
+  - **Desmotivados Crônicos** — INDE baixo, necessitam intervenção urgente
+  - **Em Risco** — Desempenho abaixo da média, atenção redobrada
+  - **Engajados com Dificuldade** — Boa vontade mas indicadores medianos
+  - **Alto Desempenho** — INDE elevado, exemplos de sucesso
+
+### Gerador de Relatórios (LLM)
+- **Modelo:** Claude 3.5 Sonnet via OpenRouter
+- **Formato:** Relatório pedagógico com resumo, análise de indicadores, pontos fortes/atenção e recomendações
+- **Integração:** Recebe automaticamente risco predito + cluster do aluno
+
 ## 🧪 Testes
+
+O projeto conta com **141 testes unitários** e **85.95% de cobertura** de código.
 
 ```bash
 # Rodar todos os testes
 pytest tests/ -v
 
 # Verificar cobertura
+pytest tests/ --cov=app --cov=src --cov-report=term-missing
+
+# Gerar relatório HTML de cobertura
 pytest tests/ --cov=app --cov=src --cov-report=html
 ```
 
-## 📊 Métricas dos Modelos
+### Cobertura por Módulo
 
-### Classificador de Risco
-- **Modelo:** XGBoost Classifier
-- **Features:** INDE, IEG, IDA, IPS, deltas, anos no programa
-- **Target:** Queda de pedra no próximo ano
+| Módulo | Cobertura |
+|--------|-----------|
+| `src/data/` (loader, preprocessing, feature_engineering) | 96-98% |
+| `src/models/` (classifier, clustering) | 70-80% |
+| `src/monitoring/` (drift) | 83% |
+| `app/routes/` (health, predict, cluster, enrich) | 58-86% |
+| `app/models/schemas.py` | 95% |
+| `app/services/llm_service.py` | 81% |
+| **TOTAL** | **85.95%** |
 
-### Clusterização
-- **Modelo:** K-Means (k=4)
-- **Features:** INDE, IEG, IDA, IPS, IAA
-- **Clusters:** Alto Desempenho, Engajados com Dificuldade, Em Risco, Desmotivados Crônicos
+## 📈 Monitoramento e Data Drift
 
-## 🔧 Configurações
+O sistema inclui monitoramento contínuo usando **Evidently AI**:
+
+- **Endpoint:** `GET /health/drift` — Compara distribuições entre anos (2022 vs 2023, 2022 vs 2024)
+- **Features monitoradas:** INDE, IEG, IDA, IPS, IAA
+- **Métricas:** Dataset Drift (proporção de features com drift), Drift por feature (p-value e estatística de teste)
+- **Relatório HTML:** Gerado via `src/monitoring/drift.py` para análise visual
 
 Variáveis de ambiente principais:
 

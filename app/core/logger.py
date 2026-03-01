@@ -3,6 +3,7 @@ Configuração de logging para a aplicação.
 """
 
 import sys
+import logging
 from loguru import logger
 from app.core.config import get_settings
 
@@ -34,11 +35,14 @@ def setup_logging() -> None:
             format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name}:{function}:{line} - {message}",
         )
 
+    # Intercepta logs do logging padrão e redireciona para loguru
+    logging.basicConfig(handlers=[InterceptHandler()], level=0, force=True)
+
     logger.info(f"Logging configurado - Nível: {settings.log_level}, Ambiente: {settings.environment}")
 
 
 # Para compatibilidade com logging padrão Python
-class InterceptHandler:
+class InterceptHandler(logging.Handler):
     """
     Intercepta logs do logging padrão e redireciona para loguru.
     """

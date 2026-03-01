@@ -9,6 +9,8 @@ services:
       context: ..
       dockerfile: docker/Dockerfile.api
     container_name: passos_magicos_api
+    env_file:
+      - ../.env
     ports:
       - "8000:8000"
     environment:
@@ -18,7 +20,6 @@ services:
       - ENVIRONMENT=production
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/passos_magicos
       - MLFLOW_TRACKING_URI=http://mlflow:5000
-      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
     volumes:
       - ../models:/app/models:ro
       - ../data:/app/data:ro

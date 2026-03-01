@@ -15,6 +15,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copia código do frontend
 COPY frontend/ ./frontend/
 
+# Cria diretório para configuração
+RUN mkdir -p .streamlit
+
 # Expõe porta
 EXPOSE 8501
 

@@ -3,12 +3,15 @@ Serviço de integração com LLM via OpenRouter.
 
 Este módulo fornece funções para gerar relatórios personalizados
 usando o Claude 3.5 Sonnet ou outros modelos via OpenRouter.
+Usa httpx diretamente para evitar incompatibilidade openai SDK + pydantic.
 """
 
-import openai
+import httpx
 from typing import Dict, Optional
 from pathlib import Path
 from loguru import logger
+
+_OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 
 
 class LLMService:
@@ -27,10 +30,9 @@ class LLMService:
             api_key: Chave de API do OpenRouter
             base_url: URL base da API (padrão: OpenRouter)
         """
-        self.client = openai.OpenAI(
-            base_url=base_url,
-            api_key=api_key
-        )
+        self.api_key = api_key
+        self.base_url = base_url.rstrip("/")
+        self.completions_url = f"{self.base_url}/chat/completions"
         logger.info("Serviço LLM inicializado")
 
     def _load_prompt_template(self, template_name: str = "relatorio_aluno.txt") -> str:
@@ -150,35 +152,48 @@ As recomendações devem ser práticas e considerar o nível de risco e perfil d
             settings = get_settings()
             model = settings.openrouter_model
 
-        # Chama API
+        # Chama API via httpx
         logger.info(f"Gerando relatório com modelo: {model}")
 
         try:
-            response = self.client.chat.completions.create(
-                model=model,
-                messages=[
-                    {
-                        "role": "system",
-                        "content": "Você é um assistente pedagógico especializado da ONG Passos Mágicos. Gere relatórios construtivos e acolhedores para professores."
+            async with httpx.AsyncClient(timeout=60.0) as client:
+                response = await client.post(
+                    self.completions_url,
+                    headers={
+                        "Authorization": f"Bearer {self.api_key}",
+                        "Content-Type": "application/json",
                     },
-                    {
-                        "role": "user",
-                        "content": prompt
-                    }
-                ],
-                temperature=temperature,
-                max_tokens=max_tokens
-            )
+                    json={
+                        "model": model,
+                        "messages": [
+                            {
+                                "role": "system",
+                                "content": "Você é um assistente pedagógico especializado da ONG Passos Mágicos. Gere relatórios construtivos e acolhedores para professores."
+                            },
+                            {
+                                "role": "user",
+                                "content": prompt
+                            }
+                        ],
+                        "temperature": temperature,
+                        "max_tokens": max_tokens,
+                    },
+                )
+                response.raise_for_status()
+                data = response.json()
 
-            relatorio = response.choices[0].message.content
-            tokens_usados = response.usage.total_tokens if hasattr(response, "usage") else None
+            relatorio = data["choices"][0]["message"]["content"]
+            tokens_usados = data.get("usage", {}).get("total_tokens")
 
             logger.info(f"Relatório gerado: {len(relatorio)} caracteres, {tokens_usados} tokens")
 
             return relatorio
 
-        except openai.APIError as e:
-            logger.error(f"Erro na API OpenAI/OpenRouter: {e}")
+        except httpx.HTTPStatusError as e:
+            logger.error(f"Erro na API OpenRouter: {e.response.status_code} - {e.response.text}")
+            raise
+        except Exception as e:
+            logger.error(f"Erro na chamada LLM: {e}")
             raise
 
     async def simple_completion(
@@ -203,13 +218,23 @@ As recomendações devem ser práticas e considerar o nível de risco e perfil d
             settings = get_settings()
             model = settings.openrouter_model
 
-        response = self.client.chat.completions.create(
-            model=model,
-            messages=[{"role": "user", "content": prompt}],
-            temperature=temperature
-        )
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            response = await client.post(
+                self.completions_url,
+                headers={
+                    "Authorization": f"Bearer {self.api_key}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": model,
+                    "messages": [{"role": "user", "content": prompt}],
+                    "temperature": temperature,
+                },
+            )
+            response.raise_for_status()
+            data = response.json()
 
-        return response.choices[0].message.content
+        return data["choices"][0]["message"]["content"]
 
 
 # Função de conveniência

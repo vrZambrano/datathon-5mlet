@@ -16,9 +16,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY app/ ./app/
 COPY src/ ./src/
 COPY prompts/ ./prompts/
+COPY scripts/ ./scripts/
 
-# Cria diretório para modelos
-RUN mkdir -p models
+# Cria diretórios necessários
+RUN mkdir -p models data/raw reports logs
 
 # Expõe porta
 EXPOSE 8000
