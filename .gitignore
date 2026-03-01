@@ -205,3 +205,29 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# === Passos Mágicos Datathon Project Specific ===
+
+# ML / Models
+models/*.pkl
+models/*.joblib
+models/*.json
+mlruns/
+*.mlflow
+
+# Data (datasets são grandes)
+data/raw/*
+data/processed/*
+data/features/*
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+!data/features/.gitkeep
+
+# Logs
+logs/
+*.log
+
+# Project specific
+models/trained/
+temp/
+tmp/

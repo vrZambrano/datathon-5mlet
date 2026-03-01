@@ -1,0 +1,117 @@
+version: '3.8'
+
+services:
+  # ==========================================
+  # API FastAPI
+  # ==========================================
+  api:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.api
+    container_name: passos_magicos_api
+    ports:
+      - "8000:8000"
+    environment:
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+      - LOG_LEVEL=INFO
+      - ENVIRONMENT=production
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/passos_magicos
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
+    volumes:
+      - ../models:/app/models:ro
+      - ../data:/app/data:ro
+    depends_on:
+      - postgres
+      - mlflow
+    restart: unless-stopped
+    networks:
+      - passos_network
+
+  # ==========================================
+  # Frontend Streamlit
+  # ==========================================
+  streamlit:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.streamlit
+    container_name: passos_magicos_frontend
+    ports:
+      - "8501:8501"
+    environment:
+      - API_URL=http://api:8000
+    depends_on:
+      - api
+    restart: unless-stopped
+    networks:
+      - passos_network
+
+  # ==========================================
+  # PostgreSQL (Opcional - para dados)
+  # ==========================================
+  postgres:
+    image: postgres:15-alpine
+    container_name: passos_magicos_db
+    environment:
+      - POSTGRES_DB=passos_magicos
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    networks:
+      - passos_network
+
+  # ==========================================
+  # MLflow Tracking Server
+  # ==========================================
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v2.18.0
+    container_name: passos_magicos_mlflow
+    ports:
+      - "5001:5000"
+    environment:
+      - BACKEND_STORE_URI=sqlite:///mlflow.db
+      - DEFAULT_ARTIFACT_ROOT=/mlflow/artifacts
+    volumes:
+      - mlflow_data:/mlflow
+    command: >
+      mlflow server
+      --backend-store-uri sqlite:///mlflow/mlflow.db
+      --default-artifact-root /mlflow/artifacts
+      --host 0.0.0.0
+      --port 5000
+    restart: unless-stopped
+    networks:
+      - passos_network
+
+  # ==========================================
+  # MinIO (S3-compatible storage - Opcional)
+  # ==========================================
+  minio:
+    image: minio/minio:latest
+    container_name: passos_magicos_minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      - MINIO_ROOT_USER=minio
+      - MINIO_ROOT_PASSWORD=minio123
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":9001"
+    restart: unless-stopped
+    networks:
+      - passos_network
+
+volumes:
+  postgres_data:
+  mlflow_data:
+  minio_data:
+
+networks:
+  passos_network:
+    driver: bridge
