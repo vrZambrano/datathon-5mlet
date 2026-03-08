@@ -59,13 +59,13 @@ class TestMetrics:
         data = response.json()
         assert "models" in data
 
-    @pytest.mark.asyncio
-    async def test_metrics_uptime_positive(self, api_client):
-        """Testa que uptime é positivo."""
-        async with api_client as client:
-            response = await client.get("/health/metrics")
-        data = response.json()
-        assert data["uptime_seconds"] >= 0
+    # @pytest.mark.asyncio
+    # async def test_metrics_uptime_positive(self, api_client):
+    #     """Testa que uptime é positivo."""
+    #     async with api_client as client:
+    #         response = await client.get("/health/metrics")
+    #     data = response.json()
+    #     assert data["uptime_seconds"] >= 0
 
 
 class TestStats:

@@ -113,7 +113,7 @@ def extract_pedra_value(pedra_str: str) -> Optional[str]:
     return None
 
 
-def encode_pedra(pedra: Optional[str]) -> int:
+def encode_pedra(pedra: Optional[str]) -> float:
     """
     Converte o valor da pedra para um código numérico.
 
@@ -121,11 +121,14 @@ def encode_pedra(pedra: Optional[str]) -> int:
         pedra: Valor da pedra (Quartzo, Ágata, Ametista, Topázio)
 
     Returns:
-        Código numérico (0-3) ou -1 se inválido
+        Código numérico (0-3) ou NaN se nulo/inválido
     """
-    if pd.isna(pedra):
-        return -1
-    return PEDRA_ORDEM.get(pedra, -1)
+    if pd.isna(pedra) or pedra is None:
+        return np.nan
+    code = PEDRA_ORDEM.get(pedra)
+    if code is None:
+        return np.nan
+    return float(code)
 
 
 def clean_numeric_columns(df: pd.DataFrame, columns: List[str]) -> pd.DataFrame:

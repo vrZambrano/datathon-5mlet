@@ -57,7 +57,10 @@ ANO_COLUNA = "ano"
 # Mapeamento de colunas para padronização
 # NOTA: As chaves aqui estão em UPPERCASE pois clean_column_names() converte tudo.
 # Mapeamento genérico (aplicado a todos os anos)
-COLUNA_MAP = {}
+# 2022 usa "Nome", 2023/2024 usam "Nome Anonimizado" - unificamos para NOME
+COLUNA_MAP = {
+    "NOME ANONIMIZADO": "NOME",
+}
 
 # Mapeamento por ano: mapeia a coluna INDE/Pedra do ano corrente para nome padrão
 COLUNA_MAP_PER_YEAR = {
@@ -81,6 +84,17 @@ CLUSTER_NAMES = {
     1: "Engajados com Dificuldade",
     2: "Alto Desempenho",
     3: "Em Risco",
+}
+
+# Medianas populacionais para imputação de cold start
+# Calculadas sobre a base PEDE 2020-2024 (denominador comum)
+# Usadas quando um aluno novo não tem histórico para uma feature
+FEATURE_MEDIANS = {
+    "INDE": 6.354,
+    "IEG": 6.472,
+    "IDA": 6.751,
+    "IPS": 5.893,
+    "IAA": 6.123,
 }
 
 # Thresholds para classificação de risco

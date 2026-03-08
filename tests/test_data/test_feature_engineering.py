@@ -157,6 +157,20 @@ class TestCalculatePedraChanges:
         result = calculate_pedra_changes(df)
         assert result["pedras_mudadas"].iloc[0] == 0
 
+    def test_nan_pedra_does_not_inflate(self):
+        """Testa que pedra NaN não infla contagem de mudanças."""
+        df = pd.DataFrame({
+            "RA": ["A", "A", "A"],
+            "ano": [2022, 2023, 2024],
+            "PEDRA_CODIGO": [2.0, np.nan, 1.0],  # Ametista -> NaN -> Ágata
+        })
+        result = calculate_pedra_changes(df)
+        sorted_r = result.sort_values("ano")
+        # Ano 2023 (NaN) deve contribuir 0, não diff com 2
+        assert sorted_r["pedras_mudadas"].iloc[1] == 0
+        # Total não deve ser inflado por NaN
+        assert sorted_r["pedras_mudadas_total"].iloc[2] <= 1.0
+
 
 class TestIdentifyNewStudents:
     """Testes para identify_new_students."""
@@ -236,6 +250,20 @@ class TestCreateTargetVariable:
         df = pd.DataFrame({"RA": ["A"], "ano": [2022]})
         result = create_target_variable(df)
         assert pd.isna(result["target_queda_prox_ano"].iloc[0])
+
+    def test_nan_pedra_produces_nan_target(self):
+        """Testa que pedra NaN no registro atual gera target NaN, não falso positivo."""
+        df = pd.DataFrame({
+            "RA": ["A", "A", "A"],
+            "ano": [2022, 2023, 2024],
+            "PEDRA_CODIGO": [2.0, np.nan, 1.0],
+        })
+        result = create_target_variable(df)
+        sorted_r = result.sort_values("ano")
+        # 2023 tem pedra NaN — target deve ser NaN, não 1
+        assert pd.isna(sorted_r["target_queda_prox_ano"].iloc[1])
+        # 2022→2023: próxima pedra é NaN — target deve ser NaN, não 1
+        assert pd.isna(sorted_r["target_queda_prox_ano"].iloc[0])
 
 
 class TestPrepareFeaturesForModeling:

@@ -257,6 +257,38 @@ async def get_students(ano: int = None):
                 df_year = df_year.drop(columns=["NOME"])
             df_year = df_year.merge(name_lookup, on="RA", how="left")
 
+        # Adiciona coluna de cluster via modelo de clustering
+        try:
+            clustering_path = Path(settings.clustering_model)
+            scaler_path = Path(settings.scaler)
+            labels_path = Path("models/cluster_labels.json")
+
+            if clustering_path.exists() and scaler_path.exists():
+                km = joblib.load(clustering_path)
+                scaler = joblib.load(scaler_path)
+
+                cluster_feats = ["INDE", "IEG", "IDA", "IPS", "IAA"]
+                df_year = df_year.copy()
+                df_year["cluster"] = None
+
+                # Carrega nomes dos clusters
+                cluster_names = {}
+                if labels_path.exists():
+                    with open(labels_path) as f:
+                        ldata = json.load(f)
+                    cluster_names = ldata.get("cluster_names", {})
+
+                # Prediz cluster apenas para linhas com features completas
+                mask = df_year[cluster_feats].notna().all(axis=1)
+                if mask.any():
+                    X_scaled = scaler.transform(df_year.loc[mask, cluster_feats])
+                    labels = km.predict(X_scaled)
+                    df_year.loc[mask, "cluster"] = [
+                        cluster_names.get(str(cid), f"Cluster {cid}") for cid in labels
+                    ]
+        except Exception as e:
+            logger.warning(f"Erro ao calcular clusters para students: {e}")
+
         # Colunas relevantes para retorno
         cols_map = {
             "RA": "ra", "NOME": "nome", "ano": "ano",
@@ -272,6 +304,7 @@ async def get_students(ano: int = None):
             "delta_INDE": "delta_inde",
             "delta_IEG": "delta_ieg",
             "delta_IDA": "delta_ida",
+            "cluster": "cluster",
         }
 
         available_cols = {k: v for k, v in cols_map.items() if k in df_year.columns}

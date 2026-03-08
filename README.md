@@ -8,7 +8,7 @@ Este sistema utiliza Inteligência Artificial para auxiliar professores e educad
 
 - 📊 **Prever riscos de queda de desempenho** - Identificar alunos com risco de cair de nível (pedra)
 - 👥 **Agrupar perfis de alunos** - Clusterização para ações pedagógicas personalizadas
-- 📝 **Gerar relatórios personalizados** - Uso de LLM (Claude 3.5 Sonnet) para criar recomendações pedagógicas
+- 📝 **Gerar relatórios personalizados** - Uso de LLM (Claude Sonnet 4) para criar recomendações pedagógicas
 
 ## 🏗️ Arquitetura
 
@@ -22,7 +22,7 @@ Este sistema utiliza Inteligência Artificial para auxiliar professores e educad
                          ┌──────────────────┐
                          │  LLM Service     │
                          │  (OpenRouter +   │
-                         │   Claude 3.5)    │
+                         │  Claude Sonnet 4)│
                          └──────────────────┘
 ```
 
@@ -35,8 +35,8 @@ Este sistema utiliza Inteligência Artificial para auxiliar professores e educad
 | **ML** | XGBoost, Scikit-learn, K-Means |
 | **MLOps** | MLflow, Docker |
 | **Monitoramento** | Evidently AI (Data Drift) |
-| **LLM** | Claude 3.5 Sonnet via OpenRouter |
-| **Testes** | pytest (141 testes, 85%+ cobertura) |
+| **LLM** | Claude Sonnet 4 via OpenRouter |
+| **Testes** | pytest (145 testes, 85%+ cobertura) |
 
 ## 📦 Estrutura do Projeto
 
@@ -57,7 +57,7 @@ datathon-5mlet/
 │   └── utils/             # Constants e helpers
 ├── scripts/               # Scripts de execução
 │   └── train_all.py       # Treina todos os modelos
-├── tests/                 # Testes unitários (141 testes, 85%+ cobertura)
+├── tests/                 # Testes unitários (145 testes, 85%+ cobertura)
 │   ├── test_data/         # Testes de loader, preprocessing, feature eng.
 │   ├── test_models/       # Testes de classifier e clustering
 │   ├── test_api/          # Testes de endpoints
@@ -184,25 +184,56 @@ curl -X POST http://localhost:8000/predict/risk \
 ```json
 {
   "aluno_id": "RA-1234",
-  "risco_probabilidade": 0.73,
-  "risco_classe": "ALTO",
-  "vai_cair": true,
+  "risco_probabilidade": 0.35,
+  "risco_classe": "BAIXO",
+  "vai_cair": false,
   "features_importantes": {
-    "delta_INDE": -0.45,
-    "IEG": 0.32
-  },
-  "timestamp": "2025-02-28T10:30:00Z"
+    "tendencia_INDE": 0.262,
+    "delta_INDE": 0.137,
+    "pedras_mudadas_total": 0.115
+  }
 }
+```
+
+### Exemplo de Uso - Clusterização
+
+```bash
+curl -X POST http://localhost:8000/predict/cluster \
+  -H "Content-Type: application/json" \
+  -d '{
+    "aluno_id": "RA-1234",
+    "inde": 7.5,
+    "ieg": 6.2,
+    "ida": 7.0,
+    "ips": 5.5,
+    "iaa": 6.0
+  }'
+```
+
+### Exemplo de Uso - Health Check
+
+```bash
+# Status geral
+curl http://localhost:8000/health
+
+# Estatísticas do dashboard
+curl http://localhost:8000/health/stats
+
+# Análise de data drift
+curl http://localhost:8000/health/drift
+
+# Lista de alunos (filtrando por ano)
+curl http://localhost:8000/health/students?ano=2024
 ```
 
 ## 📊 Métricas dos Modelos
 
 ### Classificador de Risco (XGBoost)
 - **Modelo:** XGBoost Classifier
-- **F1-Score:** 0.844
-- **ROC AUC:** 0.888
-- **Precisão:** 0.848
-- **Recall:** 0.844
+- **F1-Score:** 0.887
+- **ROC AUC:** 0.938
+- **Precisão:** ~0.89
+- **Recall:** ~0.89
 - **Features (11):** INDE, IEG, IDA, IPS, IAA, delta_INDE, delta_IEG, delta_IDA, anos_no_programa, tendencia_INDE, pedras_mudadas_total
 - **Target:** Queda de pedra no próximo ano
 - **Split:** GroupShuffleSplit (80/20) por aluno para evitar vazamento
@@ -219,13 +250,13 @@ curl -X POST http://localhost:8000/predict/risk \
   - **Alto Desempenho** — INDE elevado, exemplos de sucesso
 
 ### Gerador de Relatórios (LLM)
-- **Modelo:** Claude 3.5 Sonnet via OpenRouter
+- **Modelo:** Claude Sonnet 4 via OpenRouter
 - **Formato:** Relatório pedagógico com resumo, análise de indicadores, pontos fortes/atenção e recomendações
 - **Integração:** Recebe automaticamente risco predito + cluster do aluno
 
 ## 🧪 Testes
 
-O projeto conta com **141 testes unitários** e **85.95% de cobertura** de código.
+O projeto conta com **145 testes unitários** e **85.95% de cobertura** de código.
 
 ```bash
 # Rodar todos os testes
@@ -271,7 +302,7 @@ MLFLOW_TRACKING_URI=http://localhost:5001
 
 # OpenRouter (LLM)
 OPENROUTER_API_KEY=sk-or-v1-sua-chave
-OPENROUTER_MODEL=anthropic/claude-3.5-sonnet
+OPENROUTER_MODEL=anthropic/claude-sonnet-4.6
 
 # Modelos
 CLASSIFIER_MODEL=models/classifier.pkl
@@ -279,9 +310,21 @@ CLUSTERING_MODEL=models/clustering_model.pkl
 SCALER=models/scaler.pkl
 ```
 
-## 📖 Documentação Adicional
+## � Acesso à Aplicação (Local)
 
-- [PLANO_CLAUDE.md](PLANO_CLAUDE.md) - Plano detalhado de implementação
+Esta é uma entrega local. Após seguir o [guia de instalação](#-guia-de-instalação-rápida) ou subir via [Docker](#-docker):
+
+| Serviço | URL | Descrição |
+|---------|-----|-----------|
+| **API** | http://localhost:8000 | FastAPI — endpoints REST |
+| **Docs (Swagger)** | http://localhost:8000/docs | Documentação interativa da API |
+| **Frontend** | http://localhost:8501 | Streamlit — dashboard, predições, relatórios |
+| **MLflow** | http://localhost:5001 | Tracking de experimentos (via Docker) |
+| **MinIO** | http://localhost:9001 | Console de artefatos (via Docker) |
+
+## �📖 Documentação Adicional
+
+- [PLANO_PROJETO.md](PLANO_PROJETO.md) - Plano detalhado de implementação
 - [instrucoes.md](instrucoes.md) - Instruções originais do Datathon
 
 ## 👥 Time

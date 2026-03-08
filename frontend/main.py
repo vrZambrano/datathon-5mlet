@@ -108,9 +108,10 @@ def safe_float(val, default=0.0):
         return default
 
 
-def render_student_selector(page_key: str, show_ano=True):
+def render_student_selector(page_key: str, show_ano=True, show_pedra_filter=False, show_cluster_filter=False):
     """
     Renderiza filtros de seleção de aluno (Ano + RA/Nome).
+    Opcionalmente mostra filtros de Pedra e Cluster sincronizados.
     Retorna o registro do aluno selecionado ou None.
     """
     df_students, anos_disponiveis = fetch_students()
@@ -119,8 +120,19 @@ def render_student_selector(page_key: str, show_ano=True):
         st.warning("⚠️ Não foi possível carregar dados dos alunos da API.")
         return None
 
-    col_ano, col_busca = st.columns([1, 3])
+    # Determina número de colunas baseado nos filtros ativos
+    if show_pedra_filter and show_cluster_filter:
+        col_ano, col_pedra, col_cluster, col_busca = st.columns([1, 1, 1, 2])
+    elif show_pedra_filter or show_cluster_filter:
+        col_ano, col_extra, col_busca = st.columns([1, 1, 2])
+        if show_pedra_filter:
+            col_pedra = col_extra
+        else:
+            col_cluster = col_extra
+    else:
+        col_ano, col_busca = st.columns([1, 3])
 
+    # Aplica filtro de ano
     with col_ano:
         if show_ano and anos_disponiveis:
             ano_sel = st.selectbox(
@@ -133,6 +145,38 @@ def render_student_selector(page_key: str, show_ano=True):
         else:
             df_filtered = df_students
             ano_sel = None
+
+    # Filtro de Pedra (sincronizado)
+    if show_pedra_filter:
+        with col_pedra:
+            pedras_disponiveis = ["Todas"]
+            if "pedra" in df_filtered.columns:
+                pedras_unicas = df_filtered["pedra"].dropna().unique().tolist()
+                pedras_disponiveis += sorted(pedras_unicas)
+            pedra_sel = st.selectbox(
+                "Filtrar por Pedra",
+                options=pedras_disponiveis,
+                index=0,
+                key=f"{page_key}_pedra_filter"
+            )
+            if pedra_sel != "Todas":
+                df_filtered = df_filtered[df_filtered["pedra"] == pedra_sel]
+
+    # Filtro de Cluster (sincronizado)
+    if show_cluster_filter:
+        with col_cluster:
+            clusters_disponiveis = ["Todos"]
+            if "cluster" in df_filtered.columns:
+                clusters_unicos = df_filtered["cluster"].dropna().unique().tolist()
+                clusters_disponiveis += sorted(clusters_unicos)
+            cluster_sel = st.selectbox(
+                "Filtrar por Cluster",
+                options=clusters_disponiveis,
+                index=0,
+                key=f"{page_key}_cluster_filter"
+            )
+            if cluster_sel != "Todos":
+                df_filtered = df_filtered[df_filtered["cluster"] == cluster_sel]
 
     with col_busca:
         # Cria lista de opções: "RA - Nome"
@@ -169,7 +213,12 @@ def render_student_selector(page_key: str, show_ano=True):
 # SIDEBAR
 # ============================================================================
 
+from pathlib import Path as _SidebarPath
+_ICON_PATH = _SidebarPath(__file__).parent / "components" / "Passos-magicos-icon-cor.png"
+
 with st.sidebar:
+    if _ICON_PATH.exists():
+        st.image(str(_ICON_PATH), width=180)
     st.title("🎓 Passos Mágicos")
     st.markdown("---")
 
@@ -194,13 +243,6 @@ with st.sidebar:
         label_visibility="collapsed"
     )
 
-    st.markdown("---")
-    st.markdown("### Configuração")
-    api_url_input = st.text_input("API URL", value=API_URL)
-    if api_url_input != API_URL:
-        st.session_state["API_URL"] = api_url_input
-        st.rerun()
-
 
 # ============================================================================
 # PÁGINAS
@@ -210,38 +252,88 @@ with st.sidebar:
 if page == "🏠 Dashboard":
     st.title("📊 Dashboard - Visão Geral")
 
-    @st.cache_data(ttl=60)
-    def fetch_stats():
-        try:
-            resp = requests.get(f"{API_URL}/health/stats", timeout=15)
-            if resp.status_code == 200:
-                return resp.json()
-        except Exception:
-            pass
-        return None
+    # -- busca dados brutos (todos os alunos, todos os anos) --
+    df_all, anos_disp = fetch_students()
 
-    stats = fetch_stats()
-
-    if stats and "error" not in stats:
+    if df_all.empty:
+        st.warning("⚠️ Não foi possível carregar dados da API. Verifique se a API está rodando.")
         col1, col2, col3, col4 = st.columns(4)
-
         with col1:
-            st.metric("Total de Alunos", f"{stats['total_alunos']:,}")
+            st.metric("Total de Alunos", "---")
         with col2:
-            inde = stats.get("inde_medio")
-            st.metric("INDE Médio", f"{inde:.2f}" if inde else "---")
+            st.metric("INDE Médio", "---")
         with col3:
-            st.metric("Risco Alto", stats.get("risco_alto", 0))
+            st.metric("Risco Alto", "---")
         with col4:
-            st.metric("Clusters", stats.get("n_clusters", 4))
+            st.metric("Clusters", "4")
+    else:
+        # ---- filtro por ano ----
+        year_opts = ["Todos"] + [str(a) for a in sorted(anos_disp)] if anos_disp else ["Todos"]
+        selected_year = st.selectbox("Filtrar por Ano", year_opts, key="dash_year")
+
+        if selected_year != "Todos":
+            df_view = df_all[df_all["ano"].astype(str) == selected_year].copy()
+        else:
+            # sem filtro: usa último registro de cada aluno
+            df_view = df_all.sort_values("ano").groupby("ra", as_index=False).last()
+
+        total_alunos = len(df_view)
+        inde_medio = round(float(df_view["inde"].dropna().mean()), 2) if "inde" in df_view.columns and not df_view["inde"].dropna().empty else None
+
+        # -- cluster local (joblib) --
+        import joblib, json
+        from pathlib import Path as _Path
+
+        # Path funciona local (models/) e Docker (/app/models/)
+        _models_dir = _Path("/app/models") if _Path("/app/models").exists() else _Path("models")
+
+        cluster_feats = ["inde", "ieg", "ida", "ips", "iaa"]
+        cluster_dist: dict = {}
+        cluster_names: dict = {}
+        df_view["_cluster"] = None
+
+        try:
+            _km = joblib.load(_models_dir / "clustering_model.pkl")
+            _sc = joblib.load(_models_dir / "scaler.pkl")
+            _lp = _models_dir / "cluster_labels.json"
+            if _lp.exists():
+                with open(_lp) as _f:
+                    cluster_names = json.load(_f).get("cluster_names", {})
+            _mask = df_view[cluster_feats].dropna().index
+            if len(_mask):
+                _X = _sc.transform(df_view.loc[_mask, cluster_feats].values)
+                _labels = _km.predict(_X)
+                df_view.loc[_mask, "_cluster"] = [cluster_names.get(str(c), f"Cluster {c}") for c in _labels]
+                for cid in sorted(set(_labels)):
+                    name = cluster_names.get(str(cid), f"Cluster {cid}")
+                    cluster_dist[name] = int((_labels == cid).sum())
+        except Exception as e:
+            st.warning(f"Erro ao carregar clusters: {e}")
+
+        # -- pedra distribution --
+        pedra_dist: dict = {}
+        if "pedra" in df_view.columns:
+            _pc = df_view["pedra"].dropna().value_counts()
+            pedra_dist = {str(k): int(v) for k, v in _pc.items()}
+
+        # ---- KPIs ----
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            st.metric("Total de Alunos", f"{total_alunos:,}")
+        with col2:
+            st.metric("INDE Médio", f"{inde_medio:.2f}" if inde_medio else "---")
+        with col3:
+            st.metric("Pedras", len(pedra_dist))
+        with col4:
+            st.metric("Clusters", len(cluster_dist) or 4)
 
         st.markdown("---")
 
+        # ---- gráficos lado a lado ----
         col1, col2 = st.columns(2)
 
         with col1:
             st.subheader("Distribuição de Pedras")
-            pedra_dist = stats.get("pedra_distribuicao", {})
             if pedra_dist:
                 pedra_colors = {
                     "Quartzo": "#9E9E9E", "Ágata": "#2196F3",
@@ -254,7 +346,7 @@ if page == "🏠 Dashboard":
                     labels=labels, values=values,
                     marker=dict(colors=colors),
                     textinfo="label+percent+value",
-                    hole=0.35
+                    hole=0.35,
                 )])
                 fig.update_layout(margin=dict(t=20, b=20, l=20, r=20), height=350)
                 st.plotly_chart(fig, use_container_width=True)
@@ -263,54 +355,76 @@ if page == "🏠 Dashboard":
 
         with col2:
             st.subheader("Alunos por Cluster")
-            cluster_dist = stats.get("cluster_distribuicao", {})
             if cluster_dist:
                 fig = go.Figure(data=[go.Bar(
                     x=list(cluster_dist.keys()),
                     y=list(cluster_dist.values()),
                     marker_color=["#EF5350", "#FFA726", "#66BB6A", "#42A5F5"][:len(cluster_dist)],
                     text=list(cluster_dist.values()),
-                    textposition="auto"
+                    textposition="auto",
                 )])
                 fig.update_layout(
                     xaxis_title="Cluster", yaxis_title="Nº de Alunos",
-                    margin=dict(t=20, b=20, l=20, r=20), height=350
+                    margin=dict(t=20, b=20, l=20, r=20), height=350,
                 )
                 st.plotly_chart(fig, use_container_width=True)
             else:
                 st.info("📊 Dados de clusters não disponíveis")
 
-        inde_por_ano = stats.get("inde_por_ano", {})
-        if inde_por_ano:
-            st.markdown("---")
-            st.subheader("Evolução do INDE Médio por Ano")
-            anos = sorted(inde_por_ano.keys())
-            valores = [inde_por_ano[a] for a in anos]
-            fig = go.Figure(data=[go.Scatter(
-                x=anos, y=valores,
-                mode="lines+markers+text",
-                text=[str(v) for v in valores],
-                textposition="top center",
-                line=dict(color="#1976D2", width=3),
-                marker=dict(size=10)
-            )])
-            fig.update_layout(
-                xaxis_title="Ano", yaxis_title="INDE Médio",
-                margin=dict(t=20, b=20, l=20, r=20), height=300
-            )
-            st.plotly_chart(fig, use_container_width=True)
-    else:
-        col1, col2, col3, col4 = st.columns(4)
-        with col1:
-            st.metric("Total de Alunos", "---")
-        with col2:
-            st.metric("INDE Médio", "---")
-        with col3:
-            st.metric("Risco Alto", "---")
-        with col4:
-            st.metric("Clusters", "4")
+        # ---- Evolução INDE (sempre todos os anos, sem filtro) ----
+        if "inde" in df_all.columns and "ano" in df_all.columns:
+            inde_por_ano = {
+                str(int(ano)): round(float(grp["inde"].dropna().mean()), 2)
+                for ano, grp in df_all.groupby("ano")
+                if not grp["inde"].dropna().empty
+            }
+            if inde_por_ano:
+                st.markdown("---")
+                st.subheader("Evolução do INDE Médio por Ano")
+                anos = sorted(inde_por_ano.keys())
+                valores = [inde_por_ano[a] for a in anos]
+                fig = go.Figure(data=[go.Scatter(
+                    x=anos, y=valores,
+                    mode="lines+markers+text",
+                    text=[str(v) for v in valores],
+                    textposition="top center",
+                    line=dict(color="#1976D2", width=3),
+                    marker=dict(size=10),
+                )])
+                fig.update_layout(
+                    xaxis_title="Ano", yaxis_title="INDE Médio",
+                    margin=dict(t=20, b=20, l=20, r=20), height=300,
+                )
+                st.plotly_chart(fig, use_container_width=True)
+
+        # ---- Tabela de alunos com filtros ----
         st.markdown("---")
-        st.warning("⚠️ Não foi possível carregar dados da API. Verifique se a API está rodando.")
+        st.subheader("📋 Tabela de Alunos")
+
+        fcol1, fcol2 = st.columns(2)
+        with fcol1:
+            pedra_filter = st.selectbox(
+                "Filtrar por Pedra",
+                ["Todas"] + sorted(pedra_dist.keys()),
+                key="dash_pedra_filter",
+            )
+        with fcol2:
+            cluster_filter = st.selectbox(
+                "Filtrar por Cluster",
+                ["Todos"] + sorted(cluster_dist.keys()),
+                key="dash_cluster_filter",
+            )
+
+        df_table = df_view.copy()
+        if pedra_filter != "Todas" and "pedra" in df_table.columns:
+            df_table = df_table[df_table["pedra"] == pedra_filter]
+        if cluster_filter != "Todos" and "_cluster" in df_table.columns:
+            df_table = df_table[df_table["_cluster"] == cluster_filter]
+
+        show_cols = [c for c in ["ra", "nome", "ano", "pedra", "inde", "ieg", "ida", "ips", "iaa", "_cluster"] if c in df_table.columns]
+        rename_map = {"_cluster": "Cluster", "nome": "Nome", "ra": "RA", "pedra": "Pedra", "inde": "INDE", "ieg": "IEG", "ida": "IDA", "ips": "IPS", "iaa": "IAA"}
+        df_display = df_table[show_cols].rename(columns=rename_map)
+        st.dataframe(df_display.reset_index(drop=True), use_container_width=True, height=400)
 
 
 # PREDIÇÃO DE RISCO
@@ -362,6 +476,9 @@ elif page == "📊 Predição de Risco":
             "anos_no_programa": anos_no_programa,
             "tendencia_inde": safe_float(aluno.get("tendencia_inde"), 0.0) if aluno else 0.0,
             "pedras_mudadas_total": safe_float(aluno.get("pedras_mudadas_total"), 0.0) if aluno else 0.0,
+            "delta_inde": safe_float(aluno.get("delta_inde"), None) if aluno else None,
+            "delta_ieg": safe_float(aluno.get("delta_ieg"), None) if aluno else None,
+            "delta_ida": safe_float(aluno.get("delta_ida"), None) if aluno else None,
         }
 
         with st.spinner("Calculando risco..."):
@@ -449,8 +566,8 @@ elif page == "📝 Relatórios LLM":
 
     st.markdown("Selecione um aluno da base ou preencha manualmente para gerar relatório pedagógico:")
 
-    # Seletor de aluno
-    aluno = render_student_selector("report")
+    # Seletor de aluno com filtros de Pedra e Cluster sincronizados
+    aluno = render_student_selector("report", show_pedra_filter=True, show_cluster_filter=True)
 
     st.markdown("---")
 
@@ -490,7 +607,7 @@ elif page == "📝 Relatórios LLM":
     st.markdown("---")
     feedback = st.text_area(
         "Feedbacks Anteriores (opcional)",
-        "Aluno dedicado mas com dificuldade em matemática.",
+        "",
         height=80,
         key="report_feedback"
     )
@@ -596,6 +713,27 @@ elif page == "📝 Relatórios LLM":
             st.success("Relatório gerado com sucesso!")
             st.markdown("---")
 
+            # Remove cabeçalho duplicado da resposta LLM (se existir)
+            # A LLM às vezes inclui título próprio que duplica o nosso
+            linhas = relatorio.strip().split('\n')
+            linhas_limpas = []
+            skip_header = True
+            for linha in linhas:
+                linha_lower = linha.lower().strip()
+                # Pula linhas de cabeçalho até encontrar conteúdo real
+                if skip_header:
+                    if linha_lower.startswith('# relatório') or linha_lower.startswith('## relatório'):
+                        continue
+                    if linha_lower.startswith('pedra:') and 'inde:' in linha_lower:
+                        continue
+                    if linha_lower.startswith('**pedra') or linha_lower.startswith('> **pedra'):
+                        continue
+                    if linha.strip() == '' or linha.strip() == '---':
+                        continue
+                    skip_header = False  # Encontrou conteúdo real
+                linhas_limpas.append(linha)
+            relatorio_limpo = '\n'.join(linhas_limpas)
+
             # Cabeçalho do relatório com dados e predições
             st.markdown(f"# Relatório Pedagógico — {nome}")
             st.markdown(
@@ -611,7 +749,7 @@ elif page == "📝 Relatórios LLM":
             )
             st.markdown("---")
 
-            st.markdown(relatorio)
+            st.markdown(relatorio_limpo)
 
             # Texto completo para download (inclui cabeçalho)
             report_full = (
@@ -619,7 +757,7 @@ elif page == "📝 Relatórios LLM":
                 f"Pedra: {pedra} | INDE: {inde:.1f} | Idade: {idade} anos | Tempo no Programa: {anos_no_programa} anos\n"
                 f"Predição de Risco: {risco_classe} ({risco_prob:.1%}) | Cluster: {cluster_nome}\n"
                 f"{'='*60}\n\n"
-                f"{relatorio}"
+                f"{relatorio_limpo}"
             )
             st.download_button(
                 "📥 Baixar Relatório",

@@ -118,7 +118,7 @@ As recomendações devem ser práticas e considerar o nível de risco e perfil d
         aluno_data: Dict,
         model: Optional[str] = None,
         temperature: float = 0.7,
-        max_tokens: int = 1000
+        max_tokens: int = 2500
     ) -> str:
         """
         Gera relatório personalizado do aluno.

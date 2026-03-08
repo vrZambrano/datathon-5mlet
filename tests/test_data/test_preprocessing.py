@@ -103,13 +103,13 @@ class TestEncodePedra:
         assert encode_pedra("Topázio") == 3
 
     def test_encode_invalid(self):
-        """Testa encoding inválido."""
-        assert encode_pedra("Diamante") == -1
+        """Testa encoding inválido retorna NaN."""
+        assert np.isnan(encode_pedra("Diamante"))
 
     def test_encode_nan(self):
-        """Testa encoding de NaN."""
-        assert encode_pedra(np.nan) == -1
-        assert encode_pedra(None) == -1
+        """Testa encoding de NaN retorna NaN."""
+        assert np.isnan(encode_pedra(np.nan))
+        assert np.isnan(encode_pedra(None))
 
 
 class TestCleanNumericColumns:

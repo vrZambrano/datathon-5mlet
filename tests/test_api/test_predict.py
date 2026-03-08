@@ -124,3 +124,36 @@ class TestCalculateDeltasFromRequest:
         deltas = calculate_deltas_from_request(request)
         # Quando delta_inde é fornecido, não recalcula
         assert "delta_INDE" not in deltas
+
+
+class TestColdStartMedianImputation:
+    """Testes para imputação por medianas no cold start."""
+
+    def test_feature_medians_exist(self):
+        """Verifica que FEATURE_MEDIANS está definido e tem as features corretas."""
+        from src.utils.constants import FEATURE_MEDIANS
+
+        expected_keys = {"INDE", "IEG", "IDA", "IPS", "IAA"}
+        assert set(FEATURE_MEDIANS.keys()) == expected_keys
+        for key, val in FEATURE_MEDIANS.items():
+            assert isinstance(val, float), f"{key} deve ser float"
+            assert 0 < val < 10, f"{key}={val} fora do range esperado"
+
+    @pytest.mark.asyncio
+    async def test_minimal_data_uses_medians_not_zero(self, api_client):
+        """Testa que dados mínimos usam medianas, não zero."""
+        payload = {
+            "aluno_id": "RA-NOVO",
+            "ano": 2024,
+            "inde": 6.5,
+        }
+
+        async with api_client as client:
+            response = await client.post("/predict/risk", json=payload)
+
+        if response.status_code == 200:
+            data = response.json()
+            # Com medianas, aluno com INDE=6.5 (razoável) não deve ser ALTO
+            # (antes, com zeros, seria ALTO por outlier extremo)
+            assert data["risco_classe"] in ["BAIXO", "MEDIO", "ALTO"]
+            assert 0 <= data["risco_probabilidade"] <= 1

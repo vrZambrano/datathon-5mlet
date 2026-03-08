@@ -209,32 +209,65 @@ def name_clusters(clusters_info: Dict[int, Dict]) -> Dict[int, str]:
     """
     Atribui nomes descritivos aos clusters baseado nas características.
 
+    Usa uma abordagem multivariada considerando INDE e IEG:
+    - Alto Desempenho: INDE alto E IEG alto
+    - Engajados com Dificuldade: IEG alto, INDE mediano/baixo
+    - Em Risco: INDE mediano, IEG baixo
+    - Desmotivados Crônicos: INDE baixo E IEG baixo
+
     Args:
         clusters_info: Informações dos clusters
 
     Returns:
         Dicionário cluster_id -> nome
     """
-    # Análise simples baseada em INDE médio e IEG médio
     cluster_names = {}
 
-    inde_means = {cid: info.get("INDE_mean", 0) for cid, info in clusters_info.items()}
-    ieg_means = {cid: info.get("IEG_mean", 0) for cid, info in clusters_info.items()}
+    # Calcula scores compostos para cada cluster
+    # Score = INDE normalizado + IEG normalizado
+    inde_means = {cid: info.get("INDE_mean", 5.0) for cid, info in clusters_info.items()}
+    ieg_means = {cid: info.get("IEG_mean", 5.0) for cid, info in clusters_info.items()}
 
-    # Ordena clusters por INDE
-    sorted_by_inde = sorted(inde_means.items(), key=lambda x: x[1])
+    # Normaliza para 0-1
+    inde_min, inde_max = min(inde_means.values()), max(inde_means.values())
+    ieg_min, ieg_max = min(ieg_means.values()), max(ieg_means.values())
 
-    # Atribui nomes baseado em posição
-    if len(sorted_by_inde) >= 4:
-        # Menor INDE
-        cluster_names[sorted_by_inde[0][0]] = "Desmotivados Crônicos"
-        cluster_names[sorted_by_inde[1][0]] = "Em Risco"
-        cluster_names[sorted_by_inde[2][0]] = "Engajados com Dificuldade"
-        # Maior INDE
-        cluster_names[sorted_by_inde[3][0]] = "Alto Desempenho"
+    def normalize(val, vmin, vmax):
+        if vmax == vmin:
+            return 0.5
+        return (val - vmin) / (vmax - vmin)
+
+    # Score composto (média ponderada: 60% INDE, 40% IEG)
+    scores = {}
+    for cid in clusters_info:
+        inde_norm = normalize(inde_means[cid], inde_min, inde_max)
+        ieg_norm = normalize(ieg_means[cid], ieg_min, ieg_max)
+        scores[cid] = 0.6 * inde_norm + 0.4 * ieg_norm
+
+    # Ordena por score composto
+    sorted_clusters = sorted(scores.items(), key=lambda x: x[1])
+
+    # Atribui nomes baseado na posição (do pior para o melhor)
+    names = ["Desmotivados Crônicos", "Em Risco", "Engajados com Dificuldade", "Alto Desempenho"]
+
+    if len(sorted_clusters) >= 4:
+        for i, (cid, _) in enumerate(sorted_clusters):
+            cluster_names[cid] = names[i]
     else:
-        for i, (cid, _) in enumerate(sorted_by_inde):
-            cluster_names[cid] = f"Cluster {i + 1}"
+        for i, (cid, _) in enumerate(sorted_clusters):
+            if i < len(names):
+                cluster_names[cid] = names[i]
+            else:
+                cluster_names[cid] = f"Cluster {cid}"
+
+    # Log dos perfis para debug
+    for cid, name in cluster_names.items():
+        info = clusters_info[cid]
+        logger.info(
+            f"  {name}: INDE={info.get('INDE_mean', 0):.2f}, "
+            f"IEG={info.get('IEG_mean', 0):.2f}, "
+            f"n={info.get('n_students', 0)}"
+        )
 
     return cluster_names
 

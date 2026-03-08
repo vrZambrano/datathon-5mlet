@@ -12,6 +12,7 @@ from typing import Dict
 
 from app.models.schemas import RiskPredictionRequest, RiskPredictionResponse
 from app.core.config import get_settings
+from src.utils.constants import FEATURE_MEDIANS
 
 router = APIRouter()
 settings = get_settings()
@@ -55,13 +56,14 @@ async def predict_risk(request: RiskPredictionRequest):
         # Carrega modelo
         model = get_classifier_model()
 
-        # Prepara features
+        # Prepara features — medianas populacionais para cold start,
+        # 0 para deltas (semanticamente correto: "sem mudança")
         features = {
             "INDE": request.inde,
-            "IEG": request.ieg if request.ieg is not None else 0,
-            "IDA": request.ida if request.ida is not None else 0,
-            "IPS": request.ips if request.ips is not None else 0,
-            "IAA": request.iaa if request.iaa is not None else 0,
+            "IEG": request.ieg if request.ieg is not None else FEATURE_MEDIANS["IEG"],
+            "IDA": request.ida if request.ida is not None else FEATURE_MEDIANS["IDA"],
+            "IPS": request.ips if request.ips is not None else FEATURE_MEDIANS["IPS"],
+            "IAA": request.iaa if request.iaa is not None else FEATURE_MEDIANS["IAA"],
             "delta_INDE": request.delta_inde if request.delta_inde is not None else 0,
             "delta_IEG": request.delta_ieg if request.delta_ieg is not None else 0,
             "delta_IDA": request.delta_ida if request.delta_ida is not None else 0,

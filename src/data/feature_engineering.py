@@ -167,8 +167,11 @@ def calculate_pedra_changes(
     # Ordena por aluno e ano
     df = df.sort_values(by=[id_col, ano_col])
 
-    # Calcula mudanças
-    df["pedras_mudadas"] = df.groupby(id_col)[pedra_codigo_col].diff().abs().fillna(0)
+    # Calcula mudanças — ignora registros com pedra NaN para não inflar diff
+    df["pedras_mudadas"] = df.groupby(id_col)[pedra_codigo_col].diff().abs()
+    # NaN diff (primeiro ano ou pedra nula) fica 0, não infla contagem
+    df.loc[df[pedra_codigo_col].isna(), "pedras_mudadas"] = np.nan
+    df["pedras_mudadas"] = df["pedras_mudadas"].fillna(0)
 
     # Cumulativo de mudanças
     df["pedras_mudadas_total"] = df.groupby(id_col)["pedras_mudadas"].cumsum()
@@ -320,9 +323,12 @@ def create_target_variable(
     df["prox_ano_pedra"] = df.groupby(id_col)[pedra_col].shift(-1)
 
     # Target = 1 se caiu de pedra (próximo < atual)
-    df[target_col] = (df["prox_ano_pedra"] < df[pedra_col]).astype(float)
+    # Registros com pedra atual ou próxima NaN recebem target NaN (não é queda real)
+    df[target_col] = np.nan
+    mask_valid = df[pedra_col].notna() & df["prox_ano_pedra"].notna()
+    df.loc[mask_valid, target_col] = (df.loc[mask_valid, "prox_ano_pedra"] < df.loc[mask_valid, pedra_col]).astype(float)
 
-    # Remove linhas sem próximo ano (último ano de cada aluno)
+    # Remove linhas sem próximo ano (último ano de cada aluno — já NaN)
     df.loc[df["prox_ano_pedra"].isna(), target_col] = np.nan
 
     # Remove coluna temporária

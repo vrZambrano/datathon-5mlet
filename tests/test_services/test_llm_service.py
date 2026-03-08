@@ -4,6 +4,7 @@ Testes para app/services/llm_service.py
 
 import pytest
 from unittest.mock import patch, MagicMock, AsyncMock
+import httpx
 
 
 class TestLLMService:
@@ -14,7 +15,8 @@ class TestLLMService:
         from app.services.llm_service import LLMService
 
         service = LLMService(api_key="test-key-123")
-        assert service.client is not None
+        assert service.api_key == "test-key-123"
+        assert service.completions_url.endswith("/chat/completions")
 
     def test_get_default_template(self):
         """Testa template padrão."""
@@ -45,13 +47,17 @@ class TestLLMService:
 
         service = LLMService(api_key="test-key-123")
 
-        # Mock da resposta da API
-        mock_response = MagicMock()
-        mock_response.choices = [MagicMock()]
-        mock_response.choices[0].message.content = "## Resumo\nRelatório teste gerado."
-        mock_response.usage.total_tokens = 150
+        # Mock da resposta httpx
+        mock_response = httpx.Response(
+            200,
+            json={
+                "choices": [{"message": {"content": "## Resumo\nRelatório teste gerado."}}],
+                "usage": {"total_tokens": 150},
+            },
+            request=httpx.Request("POST", "https://openrouter.ai/api/v1/chat/completions"),
+        )
 
-        with patch.object(service.client.chat.completions, 'create', return_value=mock_response):
+        with patch("httpx.AsyncClient.post", new_callable=AsyncMock, return_value=mock_response):
             aluno_data = {
                 "nome": "Aluno Teste",
                 "idade": 12,
@@ -84,12 +90,16 @@ class TestLLMService:
 
         service = LLMService(api_key="test-key-123")
 
-        mock_response = MagicMock()
-        mock_response.choices = [MagicMock()]
-        mock_response.choices[0].message.content = "Relatório gerado."
-        mock_response.usage.total_tokens = 50
+        mock_response = httpx.Response(
+            200,
+            json={
+                "choices": [{"message": {"content": "Relatório gerado."}}],
+                "usage": {"total_tokens": 50},
+            },
+            request=httpx.Request("POST", "https://openrouter.ai/api/v1/chat/completions"),
+        )
 
-        with patch.object(service.client.chat.completions, 'create', return_value=mock_response):
+        with patch("httpx.AsyncClient.post", new_callable=AsyncMock, return_value=mock_response):
             # Dados mínimos
             aluno_data = {
                 "nome": "Teste",
