@@ -1,6 +1,11 @@
 # 🎓 Passos Mágicos - Assistente Pedagógico Inteligente
 
-Sistema de Machine Learning para a ONG Passos Mágicos, desenvolvido para o Datathon de Engenharia de Machine Learning.
+Sistema de Machine Learning para a ONG Passos Mágicos, desenvolvido para o Datathon da Pos Tech Machine Learning Engineering - FIAP.
+
+Vídeo: https://youtu.be/tbBCSgQ7yOk
+GitHub: https://github.com/vrZambrano/datathon-5mlet
+
+
 
 ## 📋 Descrição
 
@@ -13,17 +18,47 @@ Este sistema utiliza Inteligência Artificial para auxiliar professores e educad
 ## 🏗️ Arquitetura
 
 ```
-┌──────────────────┐     ┌──────────────────┐     ┌──────────────────┐
-│  Streamlit UI    │────▶│   FastAPI        │────▶│   ML Models      │
-│  (Frontend)      │     │   (API Gateway)  │     │  XGBoost/K-Means │
-└──────────────────┘     └──────────────────┘     └──────────────────┘
-                                │
-                                ▼
-                         ┌──────────────────┐
-                         │  LLM Service     │
-                         │  (OpenRouter +   │
-                         │  Claude Sonnet 4)│
-                         └──────────────────┘
+                              ┌─────────────────────────────────────────────────────────┐
+                              │                    Docker Compose                       │
+                              │                                                         │
+┌──────────────┐              │  ┌──────────────┐     ┌──────────────┐                  │
+│   Browser    │──────────────┼─▶│  Streamlit   │────▶│   FastAPI    │                  │
+│   :8501      │              │  │  (Frontend)  │     │   (API)      │                  │
+└──────────────┘              │  └──────────────┘     └──────┬───────┘                  │
+                              │                              │                          │
+                              │         ┌────────────────────┼────────────────┐         │
+                              │         │                    │                │         │
+                              │         ▼                    ▼                ▼         │
+                              │  ┌──────────────┐     ┌──────────────┐ ┌──────────────┐ │
+                              │  │  ML Models   │     │  Evidently   │ │    LLM       │ │
+                              │  │  .pkl files  │     │  (Drift)     │ │  (OpenRouter)│ │
+                              │  │  XGBoost     │     └──────────────┘ └──────────────┘ │
+                              │  │  K-Means     │                             │         │
+                              │  └──────────────┘                             │         │
+                              │         │                                     ▼         │
+                              │         │ logs metrics              ┌──────────────┐    │
+                              │         └────────────────────────── │   Claude     │    │
+                              │                                     │   Sonnet 4   │    │
+                              │  ┌──────────────┐     ┌──────────────┐             │    │
+                              │  │   MLflow     │     │  PostgreSQL  │ (external)  │    │
+                              │  │   :5001      │     │   :5432      │             │    │
+                              │  │  (Tracking)  │     │  (Opcional)  │             │    │
+                              │  └──────────────┘     └──────────────┘             │    │
+                              │         │                                          │    │
+                              │         ▼                                          │    │
+                              │  ┌──────────────┐                                  │    │
+                              │  │    MinIO     │                                  │    │
+                              │  │   :9001      │                                  │    │
+                              │  │  (Artifacts) │                                  │    │
+                              │  └──────────────┘                                  │    │
+                              └─────────────────────────────────────────────────────────┘
+
+Fluxo de dados:
+1. Browser → Streamlit (UI) → FastAPI (REST API)
+2. FastAPI → ML Models (.pkl) → Predições de risco/cluster
+3. FastAPI → Evidently AI → Análise de data drift
+4. FastAPI → OpenRouter → Claude Sonnet 4 (relatórios LLM)
+5. Train script → MLflow → Métricas e parâmetros dos modelos
 ```
 
 ## 🛠️ Tecnologias
@@ -36,7 +71,7 @@ Este sistema utiliza Inteligência Artificial para auxiliar professores e educad
 | **MLOps** | MLflow, Docker |
 | **Monitoramento** | Evidently AI (Data Drift) |
 | **LLM** | Claude Sonnet 4 via OpenRouter |
-| **Testes** | pytest (145 testes, 85%+ cobertura) |
+| **Testes** | pytest (151 testes, 84% cobertura) |
 
 ## 📦 Estrutura do Projeto
 
@@ -57,7 +92,7 @@ datathon-5mlet/
 │   └── utils/             # Constants e helpers
 ├── scripts/               # Scripts de execução
 │   └── train_all.py       # Treina todos os modelos
-├── tests/                 # Testes unitários (145 testes, 85%+ cobertura)
+├── tests/                 # Testes unitários (151 testes, 84% cobertura)
 │   ├── test_data/         # Testes de loader, preprocessing, feature eng.
 │   ├── test_models/       # Testes de classifier e clustering
 │   ├── test_api/          # Testes de endpoints
@@ -144,11 +179,17 @@ cd docker
 docker-compose up --build
 ```
 
-Serviços:
-- API: http://localhost:8000
-- Frontend: http://localhost:8501
-- MLflow: http://localhost:5001
-- MinIO: http://localhost:9001
+### Serviços
+
+| Serviço | URL | Status |
+|---------|-----|--------|
+| **API** | http://localhost:8000 | ✅ Core |
+| **Frontend** | http://localhost:8501 | ✅ Core |
+| **MLflow** | http://localhost:5001 | ✅ Tracking de experimentos |
+| **PostgreSQL** | localhost:5432 | ⚠️ Disponível (não utilizado atualmente) |
+| **MinIO** | http://localhost:9001 | ⚠️ Storage S3 (opcional para artifacts) |
+
+> **Nota:** A API atualmente lê dados diretamente dos arquivos `.pkl` e CSV. O PostgreSQL está configurado para uso futuro (persistência de predições, logs de usuários, etc.).
 
 ## 📚 Endpoints da API
 
@@ -160,6 +201,9 @@ Serviços:
 | GET | `/health/stats` | Estatísticas do dashboard (INDE médio, distribuição de pedras, clusters) |
 | GET | `/health/students` | Lista de alunos com indicadores (filtro por `?ano=`) |
 | GET | `/health/drift` | Análise de data drift entre anos (Evidently AI) |
+| GET | `/health/quality` | Métricas de qualidade dos dados |
+| GET | `/health/drift/report` | Relatório visual Evidently (HTML) |
+| GET | `/health/drift/llm-analysis` | Análise de drift via LLM |
 | POST | `/predict/risk` | Predição de risco de queda |
 | POST | `/predict/cluster` | Predição de cluster/perfil |
 | POST | `/enrich/report` | Geração de relatório LLM |
@@ -256,7 +300,7 @@ curl http://localhost:8000/health/students?ano=2024
 
 ## 🧪 Testes
 
-O projeto conta com **145 testes unitários** e **85.95% de cobertura** de código.
+O projeto conta com **151 testes unitários** e **83.75% de cobertura** de código.
 
 ```bash
 # Rodar todos os testes
@@ -273,22 +317,36 @@ pytest tests/ --cov=app --cov=src --cov-report=html
 
 | Módulo | Cobertura |
 |--------|-----------|
-| `src/data/` (loader, preprocessing, feature_engineering) | 96-98% |
-| `src/models/` (classifier, clustering) | 70-80% |
-| `src/monitoring/` (drift) | 83% |
-| `app/routes/` (health, predict, cluster, enrich) | 58-86% |
+| `src/data/` (loader, preprocessing, feature_engineering) | 93-98% |
+| `src/models/` (classifier, clustering) | 71-81% |
+| `src/monitoring/` (drift) | 97% |
+| `app/routes/` (health, predict, cluster, enrich) | 78-81% |
 | `app/models/schemas.py` | 95% |
-| `app/services/llm_service.py` | 81% |
-| **TOTAL** | **85.95%** |
+| `app/services/llm_service.py` | 74% |
+| `app/core/` (config, logger) | 87-100% |
+| **TOTAL** | **83.75%** |
 
-## 📈 Monitoramento e Data Drift
+## 📈 Monitoramento e MLOps
 
-O sistema inclui monitoramento contínuo usando **Evidently AI**:
+### Data Drift (Evidently AI)
 
-- **Endpoint:** `GET /health/drift` — Compara distribuições entre anos (2022 vs 2023, 2022 vs 2024)
+O sistema inclui monitoramento contínuo de data drift:
+
+- **`GET /health/drift`** — Métricas de drift entre anos (2022 vs 2023, 2022 vs 2024)
+- **`GET /health/drift/report`** — Relatório visual Evidently (HTML interativo)
+- **`GET /health/drift/llm-analysis`** — Análise interpretativa via LLM
+- **`GET /health/quality`** — Métricas de qualidade (missing values, outliers)
 - **Features monitoradas:** INDE, IEG, IDA, IPS, IAA
-- **Métricas:** Dataset Drift (proporção de features com drift), Drift por feature (p-value e estatística de teste)
-- **Relatório HTML:** Gerado via `src/monitoring/drift.py` para análise visual
+
+### MLflow Tracking
+
+Os modelos são versionados e rastreados via **MLflow**:
+
+- **Experiment:** `passos_magicos`
+- **Runs:** `risk_classifier`, `student_clustering`
+- **Métricas logadas:** F1, Precision, Recall, ROC AUC (classificador); Silhouette, Davies-Bouldin (clustering)
+- **Parâmetros logados:** Hiperparâmetros do modelo, features utilizadas
+- **UI:** http://localhost:5001 (via Docker)
 
 Variáveis de ambiente principais:
 
@@ -322,21 +380,11 @@ Esta é uma entrega local. Após seguir o [guia de instalação](#-guia-de-insta
 | **MLflow** | http://localhost:5001 | Tracking de experimentos (via Docker) |
 | **MinIO** | http://localhost:9001 | Console de artefatos (via Docker) |
 
-## �📖 Documentação Adicional
-
-- [PLANO_PROJETO.md](PLANO_PROJETO.md) - Plano detalhado de implementação
-- [instrucoes.md](instrucoes.md) - Instruções originais do Datathon
 
 ## 👥 Time
 
-Desenvolvido para o Datathon de Engenharia de Machine Learning - 5MLET.
+Desenvolvido por Victor Zambrano para o Datathon de Machine Learning Engineering - FIAP.
 
 ## 📄 Licença
 
 Este projeto foi desenvolvido para fins educacionais.
-
-## 🙏 Agradecimentos
-
-- ONG Passos Mágicos
-- Professores da pós-graduação
-- OpenRouter pelo acesso aos LLMs

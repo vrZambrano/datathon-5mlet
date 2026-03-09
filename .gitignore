@@ -231,3 +231,5 @@ logs/
 models/trained/
 temp/
 tmp/
+
+docs/*

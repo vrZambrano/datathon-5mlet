@@ -239,7 +239,7 @@ with st.sidebar:
     st.markdown("### Navegação")
     page = st.radio(
         "Selecione uma página:",
-        ["🏠 Dashboard", "📊 Predição de Risco", "👥 Clusters", "📝 Relatórios LLM"],
+        ["🏠 Dashboard", "📝 Relatórios LLM", "📈 Monitoramento", "📊 Predição de Risco", "👥 Clusters"],
         label_visibility="collapsed"
     )
 
@@ -767,6 +767,200 @@ elif page == "📝 Relatórios LLM":
             )
         else:
             st.error("Erro ao gerar relatório. Verifique se a API e LLM estão configurados.")
+
+
+# MONITORAMENTO
+elif page == "📈 Monitoramento":
+    st.title("📈 Monitoramento de Dados")
+    
+    st.markdown("""
+    Esta página apresenta métricas de **monitoramento de dados** e **detecção de drift**
+    usando o [Evidently AI](https://www.evidentlyai.com/).
+    
+    **Data Drift** ocorre quando a distribuição dos dados de entrada muda ao longo do tempo,
+    podendo impactar a performance dos modelos de ML.
+    """)
+    
+    st.markdown("---")
+    
+    # Tabs para diferentes análises
+    tab_drift, tab_quality, tab_report = st.tabs(["📊 Data Drift", "✅ Qualidade de Dados", "📄 Relatório Completo"])
+    
+    with tab_drift:
+        st.subheader("Análise de Data Drift")
+        
+        # Busca dados de drift da API
+        try:
+            drift_resp = requests.get(f"{API_URL}/health/drift", timeout=30)
+            if drift_resp.status_code == 200:
+                drift_data = drift_resp.json()
+                
+                # Seletor de comparação
+                comparisons = list(drift_data.get("drift_analysis", {}).keys())
+                if comparisons:
+                    selected_comparison = st.selectbox(
+                        "Selecione a comparação de anos:",
+                        comparisons,
+                        key="drift_comparison"
+                    )
+                    
+                    analysis = drift_data["drift_analysis"][selected_comparison]
+                    
+                    # KPIs de drift
+                    col1, col2, col3 = st.columns(3)
+                    with col1:
+                        drift_detected = "🔴 Sim" if analysis.get("dataset_drift") else "🟢 Não"
+                        st.metric("Drift Detectado", drift_detected)
+                    with col2:
+                        share = analysis.get("drift_share", 0)
+                        st.metric("Proporção de Drift", f"{share:.1%}")
+                    with col3:
+                        n_drifted = analysis.get("n_drifted_features", 0)
+                        n_total = analysis.get("n_total_features", 0)
+                        st.metric("Features com Drift", f"{n_drifted}/{n_total}")
+                    
+                    st.markdown("---")
+                    
+                    # Tabela de drift por feature
+                    st.subheader("Drift por Feature")
+                    feature_drift = analysis.get("feature_drift", {})
+                    if feature_drift:
+                        drift_rows = []
+                        for feat, info in feature_drift.items():
+                            drift_rows.append({
+                                "Feature": feat,
+                                "Drift Detectado": "🔴 Sim" if info.get("drift_detected") else "🟢 Não",
+                                "P-value": f"{info.get('drift_score', 0):.4f}",
+                                "Teste Estatístico": info.get("stattest_name", "N/A")
+                            })
+                        st.dataframe(pd.DataFrame(drift_rows), use_container_width=True, hide_index=True)
+                else:
+                    st.warning("Nenhuma comparação de drift disponível.")
+            else:
+                st.error("Erro ao buscar dados de drift da API.")
+        except Exception as e:
+            st.error(f"Erro ao conectar com a API: {e}")
+    
+    with tab_quality:
+        st.subheader("Métricas de Qualidade de Dados")
+        
+        # Busca dados de qualidade
+        try:
+            quality_resp = requests.get(f"{API_URL}/health/quality", timeout=30)
+            if quality_resp.status_code == 200:
+                quality_data = quality_resp.json()
+                
+                # KPIs de qualidade
+                col1, col2, col3, col4 = st.columns(4)
+                with col1:
+                    total = quality_data.get("total_registros", 0)
+                    st.metric("Total de Registros", f"{total:,}")
+                with col2:
+                    missing_rate = quality_data.get("missing_rate", 0)
+                    st.metric("Taxa de Missing", f"{missing_rate:.1%}")
+                with col3:
+                    n_cols = quality_data.get("n_colunas", 0)
+                    st.metric("Colunas", n_cols)
+                with col4:
+                    n_duplicates = quality_data.get("n_duplicados", 0)
+                    st.metric("Duplicados", n_duplicates)
+                
+                st.markdown("---")
+                
+                # Estatísticas por feature
+                st.subheader("Estatísticas por Feature")
+                feature_stats = quality_data.get("feature_stats", {})
+                if feature_stats:
+                    stats_rows = []
+                    for feat, stats in feature_stats.items():
+                        stats_rows.append({
+                            "Feature": feat,
+                            "Média": f"{stats.get('mean', 0):.2f}",
+                            "Desvio Padrão": f"{stats.get('std', 0):.2f}",
+                            "Mínimo": f"{stats.get('min', 0):.2f}",
+                            "Máximo": f"{stats.get('max', 0):.2f}",
+                            "Missing %": f"{stats.get('missing_pct', 0):.1%}"
+                        })
+                    st.dataframe(pd.DataFrame(stats_rows), use_container_width=True, hide_index=True)
+            else:
+                st.info("Endpoint de qualidade não disponível. Calculando localmente...")
+                
+                # Calcula localmente se endpoint não existe
+                df_all, _ = fetch_students()
+                if not df_all.empty:
+                    col1, col2, col3, col4 = st.columns(4)
+                    with col1:
+                        st.metric("Total de Registros", f"{len(df_all):,}")
+                    with col2:
+                        missing = df_all.isnull().sum().sum() / (len(df_all) * len(df_all.columns))
+                        st.metric("Taxa de Missing", f"{missing:.1%}")
+                    with col3:
+                        st.metric("Colunas", len(df_all.columns))
+                    with col4:
+                        dups = df_all.duplicated().sum()
+                        st.metric("Duplicados", dups)
+                    
+                    st.markdown("---")
+                    st.subheader("Estatísticas por Feature")
+                    
+                    num_cols = ["inde", "ieg", "ida", "ips", "iaa"]
+                    stats_rows = []
+                    for col in num_cols:
+                        if col in df_all.columns:
+                            stats_rows.append({
+                                "Feature": col.upper(),
+                                "Média": f"{df_all[col].mean():.2f}",
+                                "Desvio Padrão": f"{df_all[col].std():.2f}",
+                                "Mínimo": f"{df_all[col].min():.2f}",
+                                "Máximo": f"{df_all[col].max():.2f}",
+                                "Missing %": f"{df_all[col].isnull().mean():.1%}"
+                            })
+                    st.dataframe(pd.DataFrame(stats_rows), use_container_width=True, hide_index=True)
+        except Exception as e:
+            st.error(f"Erro ao buscar qualidade de dados: {e}")
+    
+    with tab_report:
+        st.subheader("Relatório Completo do Evidently")
+        
+        st.markdown("""
+        O relatório abaixo inclui:
+        - Dashboard visual interativo do Evidently
+        - Gráficos de distribuição por feature
+        - Testes estatísticos detalhados
+        """)
+        
+        col_btn1, col_btn2 = st.columns(2)
+        
+        with col_btn1:
+            if st.button("📊 Carregar Relatório Evidently", type="primary", use_container_width=True):
+                with st.spinner("Gerando relatório de drift..."):
+                    try:
+                        report_resp = requests.get(f"{API_URL}/health/drift/report", timeout=120)
+                        if report_resp.status_code == 200:
+                            # Salva e exibe o HTML
+                            st.components.v1.html(report_resp.text, height=800, scrolling=True)
+                        else:
+                            st.error("Erro ao gerar relatório.")
+                    except Exception as e:
+                        st.error(f"Erro: {e}")
+        
+        with col_btn2:
+            if st.button("🤖 Gerar Análise de Drift", type="secondary", use_container_width=True):
+                with st.spinner("Gerando análise com IA..."):
+                    try:
+                        llm_resp = requests.get(f"{API_URL}/health/drift/llm-analysis", timeout=120)
+                        if llm_resp.status_code == 200:
+                            llm_data = llm_resp.json()
+                            st.markdown("---")
+                            st.markdown("### 🤖 Análise Inteligente de Data Drift")
+                            st.markdown(llm_data.get("analysis", "Análise não disponível."))
+                        else:
+                            st.error("Erro ao gerar análise LLM.")
+                    except Exception as e:
+                        st.error(f"Erro: {e}")
+        
+        st.markdown("---")
+        st.info("💡 **Dica:** O relatório completo pode demorar alguns segundos para carregar devido ao processamento do Evidently.")
 
 
 # Footer

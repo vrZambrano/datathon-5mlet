@@ -17,10 +17,15 @@ from typing import Dict, List, Tuple, Optional
 from loguru import logger
 
 # MLflow (opcional)
+import os
 try:
     import mlflow
     import mlflow.sklearn
     MLFLOW_AVAILABLE = True
+    # Configura URI do MLflow server (Docker ou local)
+    mlflow_uri = os.getenv("MLFLOW_TRACKING_URI", "http://localhost:5001")
+    mlflow.set_tracking_uri(mlflow_uri)
+    logger.info(f"MLflow tracking URI: {mlflow_uri}")
 except ImportError:
     MLFLOW_AVAILABLE = False
     logger.warning("MLflow não disponível")
@@ -342,6 +347,7 @@ def train_student_clustering(
     # MLflow tracking
     if use_mlflow and MLFLOW_AVAILABLE:
         try:
+            mlflow.set_experiment("passos_magicos")
             with mlflow.start_run(run_name="student_clustering"):
                 mlflow.log_params({
                     "n_clusters": n_clusters,
@@ -353,7 +359,8 @@ def train_student_clustering(
                     "davies_bouldin_score": metrics["davies_bouldin_score"]
                 })
 
-                mlflow.sklearn.log_model(kmeans, "model")
+                # Nota: modelos .pkl salvos localmente (não como artifacts MLflow)
+                # para evitar conflitos de permissão com Docker
 
                 logger.info("Experimento logado no MLflow")
         except Exception as e:

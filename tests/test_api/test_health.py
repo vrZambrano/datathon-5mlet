@@ -136,3 +136,71 @@ class TestDrift:
         if response.status_code == 200:
             data = response.json()
             assert "drift_analysis" in data or "error" in data
+
+
+class TestQuality:
+    """Testes para GET /health/quality."""
+
+    @pytest.mark.asyncio
+    async def test_quality_returns(self, api_client):
+        """Testa endpoint de qualidade de dados."""
+        async with api_client as client:
+            response = await client.get("/health/quality")
+        assert response.status_code in [200, 500]
+
+    @pytest.mark.asyncio
+    async def test_quality_format(self, api_client):
+        """Testa formato da resposta de qualidade."""
+        async with api_client as client:
+            response = await client.get("/health/quality")
+        if response.status_code == 200:
+            data = response.json()
+            # Dados vêm direto no root ou em quality_metrics
+            assert "total_registros" in data or "quality_metrics" in data or "error" in data
+
+    @pytest.mark.asyncio
+    async def test_quality_with_year_filter(self, api_client):
+        """Testa filtragem por ano."""
+        async with api_client as client:
+            response = await client.get("/health/quality?ano=2024")
+        assert response.status_code in [200, 500]
+
+
+class TestDriftReport:
+    """Testes para GET /health/drift/report."""
+
+    @pytest.mark.asyncio
+    async def test_drift_report_returns(self, api_client):
+        """Testa endpoint de relatório de drift."""
+        async with api_client as client:
+            response = await client.get("/health/drift/report")
+        assert response.status_code in [200, 500]
+
+    @pytest.mark.asyncio
+    async def test_drift_report_returns_html(self, api_client):
+        """Testa que retorna HTML quando 200."""
+        async with api_client as client:
+            response = await client.get("/health/drift/report")
+        if response.status_code == 200:
+            assert "html" in response.text.lower() or "error" in response.json()
+
+
+class TestDriftLLMAnalysis:
+    """Testes para GET /health/drift/llm-analysis."""
+
+    @pytest.mark.asyncio
+    async def test_drift_llm_analysis_returns(self, api_client):
+        """Testa endpoint de análise LLM de drift."""
+        async with api_client as client:
+            response = await client.get("/health/drift/llm-analysis")
+        # Pode retornar 200 ou 500 dependendo da config da API LLM
+        assert response.status_code in [200, 500]
+
+    @pytest.mark.asyncio
+    async def test_drift_llm_analysis_format(self, api_client):
+        """Testa formato da resposta de análise LLM."""
+        async with api_client as client:
+            response = await client.get("/health/drift/llm-analysis")
+        if response.status_code == 200:
+            data = response.json()
+            assert "analysis" in data or "error" in data

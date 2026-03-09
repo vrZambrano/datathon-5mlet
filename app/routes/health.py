@@ -399,11 +399,10 @@ async def check_data_drift():
 @router.get("/drift/report")
 async def get_drift_report_html():
     """
-    Gera e retorna relatório de drift em HTML (Evidently AI) com
-    interpretação automática por LLM.
-
-    Combina o dashboard visual do Evidently com uma análise textual
-    gerada por IA explicando os resultados de drift.
+    Gera e retorna relatório de drift em HTML (Evidently AI).
+    
+    Retorna o dashboard visual interativo do Evidently com gráficos
+    e testes estatísticos (sem análise LLM).
     """
     from fastapi.responses import HTMLResponse
 
@@ -412,7 +411,7 @@ async def get_drift_report_html():
         if df.empty:
             return HTMLResponse("<h1>Nenhum dado disponível</h1>", status_code=404)
 
-        from src.monitoring.drift import save_drift_report_html, check_drift
+        from src.monitoring.drift import save_drift_report_html
 
         feature_cols = ["INDE", "IEG", "IDA", "IPS", "IAA"]
         available = [c for c in feature_cols if c in df.columns]
@@ -427,36 +426,12 @@ async def get_drift_report_html():
         ref = df[df["ano"] == ref_year][available].dropna()
         cur = df[df["ano"] == cur_year][available].dropna()
 
-        # 1) Gera relatório HTML do Evidently
+        # Gera relatório HTML do Evidently (apenas gráficos e estatísticas)
         output_path = "reports/drift_report.html"
         save_drift_report_html(ref, cur, output_path=output_path, feature_cols=available)
 
         with open(output_path, "r", encoding="utf-8") as f:
             html_content = f.read()
-
-        # 2) Obtém dados de drift estruturados para o LLM
-        drift_result = check_drift(ref, cur, feature_cols=available)
-
-        # 3) Estatísticas descritivas por feature
-        stats_summary = {}
-        for col in available:
-            stats_summary[col] = {
-                "ref_mean": round(float(ref[col].mean()), 2),
-                "ref_std": round(float(ref[col].std()), 2),
-                "cur_mean": round(float(cur[col].mean()), 2),
-                "cur_std": round(float(cur[col].std()), 2),
-                "ref_count": int(len(ref)),
-                "cur_count": int(len(cur)),
-            }
-
-        # 4) Tenta gerar interpretação via LLM
-        llm_html = _generate_drift_llm_analysis(
-            drift_result, stats_summary, ref_year, cur_year
-        )
-
-        # 5) Injeta a análise LLM no topo do HTML do Evidently
-        if llm_html:
-            html_content = _inject_llm_section(html_content, llm_html)
 
         logger.info(f"Relatório drift HTML gerado: {ref_year} vs {cur_year}")
         return HTMLResponse(content=html_content)
@@ -729,3 +704,136 @@ def _markdown_to_html(md: str) -> str:
     html = f"<p style='margin: 10px 0;'>{html}</p>"
 
     return html
+
+
+# ============================================================================
+# ENDPOINTS DE QUALIDADE E ANÁLISE LLM SOB DEMANDA
+# ============================================================================
+
+@router.get("/quality")
+async def get_data_quality():
+    """
+    Retorna métricas de qualidade dos dados.
+    
+    Inclui:
+    - Total de registros
+    - Taxa de missing values
+    - Número de duplicados
+    - Estatísticas por feature
+    """
+    try:
+        df = _load_processed_data()
+        if df.empty:
+            return {"error": "Nenhum dado disponível"}
+        
+        feature_cols = ["INDE", "IEG", "IDA", "IPS", "IAA", "IAN", "IPV", "IPP"]
+        available_cols = [c for c in feature_cols if c in df.columns]
+        
+        # Estatísticas gerais
+        total_registros = len(df)
+        n_colunas = len(df.columns)
+        n_duplicados = df.duplicated().sum()
+        
+        # Taxa de missing geral
+        total_cells = len(df) * len(df.columns)
+        total_missing = df.isnull().sum().sum()
+        missing_rate = total_missing / total_cells if total_cells > 0 else 0
+        
+        # Estatísticas por feature
+        feature_stats = {}
+        for col in available_cols:
+            col_data = df[col]
+            feature_stats[col] = {
+                "mean": round(float(col_data.mean()), 2) if not col_data.isna().all() else 0,
+                "std": round(float(col_data.std()), 2) if not col_data.isna().all() else 0,
+                "min": round(float(col_data.min()), 2) if not col_data.isna().all() else 0,
+                "max": round(float(col_data.max()), 2) if not col_data.isna().all() else 0,
+                "missing_pct": round(col_data.isna().mean(), 4),
+                "n_unique": int(col_data.nunique()),
+            }
+        
+        # Distribuição por ano
+        anos_dist = {}
+        if "ano" in df.columns:
+            anos_dist = df["ano"].value_counts().to_dict()
+            anos_dist = {str(k): int(v) for k, v in anos_dist.items()}
+        
+        return {
+            "total_registros": total_registros,
+            "n_colunas": n_colunas,
+            "n_duplicados": int(n_duplicados),
+            "missing_rate": round(missing_rate, 4),
+            "feature_stats": feature_stats,
+            "distribuicao_anos": anos_dist,
+        }
+        
+    except Exception as e:
+        logger.error(f"Erro ao calcular qualidade de dados: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/drift/llm-analysis")
+async def get_drift_llm_analysis():
+    """
+    Gera análise LLM do drift sob demanda (sem o HTML do Evidently).
+    
+    Útil para exibir apenas a interpretação textual no frontend.
+    """
+    try:
+        df = _load_processed_data()
+        if df.empty:
+            return {"analysis": "Nenhum dado disponível para análise."}
+        
+        from src.monitoring.drift import check_drift
+        
+        feature_cols = ["INDE", "IEG", "IDA", "IPS", "IAA"]
+        available = [c for c in feature_cols if c in df.columns]
+        
+        anos = sorted(df["ano"].unique().tolist())
+        if len(anos) < 2:
+            return {"analysis": "Dados insuficientes para comparação de drift (necessário pelo menos 2 anos)."}
+        
+        ref_year = int(anos[0])
+        cur_year = int(anos[-1])
+        
+        ref = df[df["ano"] == ref_year][available].dropna()
+        cur = df[df["ano"] == cur_year][available].dropna()
+        
+        # Obtém dados de drift
+        drift_result = check_drift(ref, cur, feature_cols=available)
+        
+        # Estatísticas descritivas
+        stats_summary = {}
+        for col in available:
+            stats_summary[col] = {
+                "ref_mean": round(float(ref[col].mean()), 2),
+                "ref_std": round(float(ref[col].std()), 2),
+                "cur_mean": round(float(cur[col].mean()), 2),
+                "cur_std": round(float(cur[col].std()), 2),
+                "ref_count": int(len(ref)),
+                "cur_count": int(len(cur)),
+            }
+        
+        # Gera análise LLM
+        llm_analysis = _generate_drift_llm_analysis(
+            drift_result, stats_summary, ref_year, cur_year
+        )
+        
+        if not llm_analysis:
+            return {
+                "analysis": "LLM não configurado. Configure OPENROUTER_API_KEY para análises com IA.",
+                "drift_data": drift_result,
+                "stats": stats_summary,
+            }
+        
+        return {
+            "analysis": llm_analysis,
+            "ref_year": ref_year,
+            "cur_year": cur_year,
+            "drift_data": drift_result,
+            "stats": stats_summary,
+        }
+        
+    except Exception as e:
+        logger.error(f"Erro ao gerar análise LLM do drift: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
