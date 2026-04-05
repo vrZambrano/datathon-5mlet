@@ -1,0 +1,11 @@
+<canvas id="chartClusters" class="w-full" style="max-height:220px"></canvas>
+<script>
+(function() {
+  createBarChart(
+    "chartClusters",
+    {{ labels | tojson }},
+    {{ values | tojson }},
+    {{ colors | tojson }}
+  );
+})();
+</script>

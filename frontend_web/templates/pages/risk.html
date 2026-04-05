@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+{% block title %}Predição de Risco{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+  <h1 class="text-2xl font-bold text-gray-900">Predição de Risco de Queda</h1>
+  <p class="text-sm text-gray-500 mt-1">Selecione um aluno ou preencha os indicadores manualmente</p>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6"
+     x-data="{
+       inde: 6.35, ieg: 6.47, ida: 6.75, ips: 5.89, iaa: 6.12, ian: 6.0,
+       anos: 1, tendencia: 0, pedras_mudadas: 0,
+       delta_inde: 0, delta_ieg: 0, delta_ida: 0,
+       ano_sel: '',
+       fillFromStudent(s) {
+         if (!s) return;
+         this.inde = s.inde ?? this.inde;
+         this.ieg = s.ieg ?? this.ieg;
+         this.ida = s.ida ?? this.ida;
+         this.ips = s.ips ?? this.ips;
+         this.iaa = s.iaa ?? this.iaa;
+         this.ian = s.ian ?? this.ian;
+         this.anos = s.anos_no_programa ?? this.anos;
+         this.tendencia = s.tendencia_inde ?? 0;
+         this.pedras_mudadas = s.pedras_mudadas_total ?? 0;
+         this.delta_inde = s.delta_inde ?? 0;
+         this.delta_ieg = s.delta_ieg ?? 0;
+         this.delta_ida = s.delta_ida ?? 0;
+       }
+     }">
+
+  <!-- Left: Form -->
+  <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+
+    <!-- Student selector -->
+    <div class="mb-5 pb-5 border-b border-gray-100">
+      <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Buscar aluno</label>
+      <div class="flex gap-2 mb-2">
+        <select id="risk-ano" name="ano" x-model="ano_sel"
+                hx-get="/ui/partials/student-options"
+                hx-target="#risk-student-select"
+                hx-include="#risk-ano"
+                hx-trigger="change"
+                class="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-violet-400 w-28">
+          <option value="">Ano</option>
+          <option value="2022">2022</option>
+          <option value="2023">2023</option>
+          <option value="2024">2024</option>
+        </select>
+        <select id="risk-student-select"
+                hx-get="/ui/partials/student-data"
+                hx-target="#risk-student-fill"
+                hx-include="#risk-ano, #risk-student-select"
+                hx-trigger="change"
+                hx-vals='{"ra": ""}'
+                class="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-violet-400">
+          <option value="">— Selecione um aluno —</option>
+        </select>
+      </div>
+      <!-- Alpine fill trigger -->
+      <div id="risk-student-fill"></div>
+    </div>
+
+    <!-- Sliders -->
+    <form id="risk-form"
+          hx-post="/ui/risk/predict"
+          hx-target="#risk-result"
+          hx-swap="innerHTML"
+          hx-indicator="#risk-spinner">
+
+      {% macro slider(label, name, model, min=0, max=10, step=0.1) %}
+      <div class="mb-4">
+        <div class="flex justify-between items-center mb-1">
+          <label class="text-sm font-medium text-gray-700">{{ label }}</label>
+          <span class="text-sm font-mono text-violet-600" x-text="{{ model }}.toFixed(1)"></span>
+        </div>
+        <input type="range" name="{{ name }}" x-model.number="{{ model }}"
+               min="{{ min }}" max="{{ max }}" step="{{ step }}"
+               class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-violet-600" />
+        <input type="hidden" name="{{ name }}" :value="{{ model }}" />
+      </div>
+      {% endmacro %}
+
+      {{ slider("INDE", "inde", "inde") }}
+      {{ slider("IEG — Engajamento", "ieg", "ieg") }}
+      {{ slider("IDA — Desempenho Acadêmico", "ida", "ida") }}
+      {{ slider("IPS — Psicossocial", "ips", "ips") }}
+      {{ slider("IAA — Autoavaliação", "iaa", "iaa") }}
+      {{ slider("IAN — Adequação ao Nível", "ian", "ian") }}
+
+      <div class="mb-4">
+        <div class="flex justify-between items-center mb-1">
+          <label class="text-sm font-medium text-gray-700">Anos no Programa</label>
+          <span class="text-sm font-mono text-violet-600" x-text="anos"></span>
+        </div>
+        <input type="range" name="anos_no_programa" x-model.number="anos"
+               min="1" max="10" step="1"
+               class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-violet-600" />
+        <input type="hidden" name="anos_no_programa" :value="anos" />
+      </div>
+
+      <!-- Hidden temporal features -->
+      <input type="hidden" name="tendencia_inde" :value="tendencia" />
+      <input type="hidden" name="pedras_mudadas_total" :value="pedras_mudadas" />
+      <input type="hidden" name="delta_inde" :value="delta_inde" />
+      <input type="hidden" name="delta_ieg" :value="delta_ieg" />
+      <input type="hidden" name="delta_ida" :value="delta_ida" />
+
+      <button type="submit"
+              class="w-full mt-2 bg-violet-600 hover:bg-violet-700 text-white font-semibold py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2">
+        <span class="htmx-indicator" id="risk-spinner">
+          <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+          </svg>
+        </span>
+        🔍 Calcular Risco
+      </button>
+    </form>
+  </div>
+
+  <!-- Right: Result -->
+  <div id="risk-result" class="flex flex-col gap-4">
+    <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-8 text-center text-gray-400">
+      <p class="text-4xl mb-3">📊</p>
+      <p class="text-sm">Preencha os indicadores e clique em <strong>Calcular Risco</strong></p>
+    </div>
+  </div>
+
+</div>
+
+<!-- Alpine.js: fill form when student-data partial loads -->
+<script>
+  document.body.addEventListener("htmx:afterSwap", function(e) {
+    if (e.detail.target.id === "risk-student-fill") {
+      const data = e.detail.target.querySelector("[data-student-json]");
+      if (data) {
+        const student = JSON.parse(data.getAttribute("data-student-json"));
+        const comp = Alpine.closestDataStack(document.getElementById("risk-form"));
+        if (comp && comp[0]) comp[0].fillFromStudent(student);
+      }
+    }
+  });
+</script>
+{% endblock %}

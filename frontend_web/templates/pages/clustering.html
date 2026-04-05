@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% block title %}Clusters{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+  <h1 class="text-2xl font-bold text-gray-900">Clusterização de Perfis</h1>
+  <p class="text-sm text-gray-500 mt-1">Identifique o perfil do aluno baseado nos indicadores educacionais</p>
+</div>
+
+<!-- Cluster descriptions -->
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+  {% set clusters_info = [
+    ("Alto Desempenho", "#66BB6A", "INDE elevado, bom engajamento. Exemplos de sucesso."),
+    ("Engajados com Dificuldade", "#FFA726", "Esforço alto, notas medianas. Precisam de apoio acadêmico."),
+    ("Em Risco", "#42A5F5", "Queda recente em engajamento. Atenção preventiva."),
+    ("Desmotivados Crônicos", "#EF5350", "Baixo engajamento prolongado. Intervenção urgente."),
+  ] %}
+  {% for nome, cor, desc in clusters_info %}
+  <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+    <div class="flex items-center gap-2 mb-2">
+      <div class="w-3 h-3 rounded-full" style="background:{{ cor }}"></div>
+      <p class="text-xs font-semibold text-gray-700">{{ nome }}</p>
+    </div>
+    <p class="text-xs text-gray-500">{{ desc }}</p>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6"
+     x-data="{
+       inde: 6.35, ieg: 6.47, ida: 6.75, ips: 5.89, iaa: 6.12,
+       ano_sel: '',
+       fillFromStudent(s) {
+         if (!s) return;
+         this.inde = s.inde ?? this.inde;
+         this.ieg = s.ieg ?? this.ieg;
+         this.ida = s.ida ?? this.ida;
+         this.ips = s.ips ?? this.ips;
+         this.iaa = s.iaa ?? this.iaa;
+       }
+     }">
+
+  <!-- Form -->
+  <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+    <div class="mb-5 pb-5 border-b border-gray-100">
+      <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Buscar aluno</label>
+      <div class="flex gap-2">
+        <select id="cl-ano" name="ano" x-model="ano_sel"
+                hx-get="/ui/partials/student-options"
+                hx-target="#cl-student-select"
+                hx-include="#cl-ano"
+                hx-trigger="change"
+                class="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-violet-400 w-28">
+          <option value="">Ano</option>
+          <option value="2022">2022</option>
+          <option value="2023">2023</option>
+          <option value="2024">2024</option>
+        </select>
+        <select id="cl-student-select"
+                hx-get="/ui/partials/student-data"
+                hx-target="#cl-student-fill"
+                hx-include="#cl-ano, #cl-student-select"
+                hx-trigger="change"
+                class="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-violet-400">
+          <option value="">— Selecione um aluno —</option>
+        </select>
+      </div>
+      <div id="cl-student-fill"></div>
+    </div>
+
+    <form id="cl-form"
+          hx-post="/ui/cluster/predict"
+          hx-target="#cluster-result"
+          hx-swap="innerHTML"
+          hx-indicator="#cl-spinner">
+
+      {% macro slider(label, name, model) %}
+      <div class="mb-4">
+        <div class="flex justify-between items-center mb-1">
+          <label class="text-sm font-medium text-gray-700">{{ label }}</label>
+          <span class="text-sm font-mono text-violet-600" x-text="{{ model }}.toFixed(1)"></span>
+        </div>
+        <input type="range" name="{{ name }}" x-model.number="{{ model }}"
+               min="0" max="10" step="0.1"
+               class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-violet-600" />
+        <input type="hidden" name="{{ name }}" :value="{{ model }}" />
+      </div>
+      {% endmacro %}
+
+      {{ slider("INDE", "inde", "inde") }}
+      {{ slider("IEG — Engajamento", "ieg", "ieg") }}
+      {{ slider("IDA — Desempenho Acadêmico", "ida", "ida") }}
+      {{ slider("IPS — Psicossocial", "ips", "ips") }}
+      {{ slider("IAA — Autoavaliação", "iaa", "iaa") }}
+
+      <button type="submit"
+              class="w-full mt-2 bg-violet-600 hover:bg-violet-700 text-white font-semibold py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2">
+        <span class="htmx-indicator" id="cl-spinner">
+          <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+          </svg>
+        </span>
+        🎯 Identificar Perfil
+      </button>
+    </form>
+  </div>
+
+  <!-- Result -->
+  <div id="cluster-result" class="flex flex-col gap-4">
+    <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-8 text-center text-gray-400">
+      <p class="text-4xl mb-3">👥</p>
+      <p class="text-sm">Preencha os indicadores e clique em <strong>Identificar Perfil</strong></p>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.body.addEventListener("htmx:afterSwap", function(e) {
+    if (e.detail.target.id === "cl-student-fill") {
+      const data = e.detail.target.querySelector("[data-student-json]");
+      if (data) {
+        const student = JSON.parse(data.getAttribute("data-student-json"));
+        const comp = Alpine.closestDataStack(document.getElementById("cl-form"));
+        if (comp && comp[0]) comp[0].fillFromStudent(student);
+      }
+    }
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,11 @@
+<canvas id="chartInde" class="w-full" style="max-height:220px"></canvas>
+<script>
+(function() {
+  createLineChart(
+    "chartInde",
+    {{ labels | tojson }},
+    {{ values | tojson }},
+    "#1976D2"
+  );
+})();
+</script>

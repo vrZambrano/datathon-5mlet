@@ -22,9 +22,13 @@ openai>=1.0.0  # Para OpenRouter
 sqlalchemy==2.0.35
 psycopg2-binary==2.9.9
 
-# === Frontend ===
+# === Frontend (Streamlit - legacy) ===
 streamlit==1.40.0
 plotly==5.24.0
+
+# === Web UI (HTMX + Jinja2) ===
+python-multipart>=0.0.9
+markdown>=3.5.0
 
 # === Testing ===
 pytest==8.3.0

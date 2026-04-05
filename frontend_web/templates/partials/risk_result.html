@@ -1,0 +1,66 @@
+{% if error %}
+<div class="bg-red-50 border border-red-200 rounded-xl p-5 text-sm text-red-700">
+  <p class="font-semibold mb-1">Erro</p>
+  <p>{{ error }}</p>
+</div>
+{% elif result %}
+
+{% set nivel = result.nivel %}
+{% set badge_class = {
+  "ALTO": "bg-red-100 text-red-800 border border-red-300",
+  "MEDIO": "bg-yellow-100 text-yellow-800 border border-yellow-300",
+  "BAIXO": "bg-green-100 text-green-800 border border-green-300",
+} %}
+{% set icon = {"ALTO": "🔴", "MEDIO": "🟡", "BAIXO": "🟢"} %}
+
+<div class="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+  <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">Resultado</p>
+
+  <!-- Risk level badge -->
+  <div class="flex items-center gap-3 mb-5">
+    <span class="text-2xl">{{ icon.get(nivel, "⚪") }}</span>
+    <span class="px-4 py-2 rounded-full text-lg font-bold {{ badge_class.get(nivel, 'bg-gray-100 text-gray-700') }}">
+      Risco {{ nivel }}
+    </span>
+  </div>
+
+  <!-- Probability bar -->
+  <div class="mb-5">
+    <div class="flex justify-between items-center mb-1">
+      <p class="text-sm text-gray-600">Probabilidade de queda</p>
+      <p class="text-sm font-bold text-gray-900">{{ "%.1f%%"|format(result.prob * 100) }}</p>
+    </div>
+    <div class="w-full bg-gray-100 rounded-full h-3">
+      <div class="h-3 rounded-full transition-all {{ 'bg-red-500' if nivel == 'ALTO' else ('bg-yellow-400' if nivel == 'MEDIO' else 'bg-green-500') }}"
+           style="width: {{ result.prob * 100 }}%">
+      </div>
+    </div>
+  </div>
+
+  <!-- Vai cair -->
+  <p class="text-sm text-gray-600 mb-5">
+    Previsão: <strong>{{ "Vai cair de nível" if result.vai_cair else "Não vai cair" }}</strong>
+  </p>
+
+  <!-- Feature importance -->
+  {% if result.feat_imp %}
+  <div>
+    <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Features mais importantes</p>
+    <div class="space-y-2">
+      {% for feat, imp in result.feat_imp.items() %}
+      <div>
+        <div class="flex justify-between text-xs mb-0.5">
+          <span class="text-gray-700 font-medium">{{ feat }}</span>
+          <span class="text-gray-500">{{ "%.1f%%"|format(imp * 100) }}</span>
+        </div>
+        <div class="w-full bg-gray-100 rounded-full h-1.5">
+          <div class="bg-violet-500 h-1.5 rounded-full" style="width: {{ imp * 100 }}%"></div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+{% endif %}

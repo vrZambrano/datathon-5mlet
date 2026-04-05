@@ -1,0 +1,11 @@
+<canvas id="chartPedras" class="w-full" style="max-height:220px"></canvas>
+<script>
+(function() {
+  createDonutChart(
+    "chartPedras",
+    {{ labels | tojson }},
+    {{ values | tojson }},
+    {{ colors | tojson }}
+  );
+})();
+</script>

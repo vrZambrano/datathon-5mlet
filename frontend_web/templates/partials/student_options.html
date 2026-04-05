@@ -1,0 +1,4 @@
+<option value="">— Selecione um aluno —</option>
+{% for s in students %}
+<option value="{{ s.ra }}">{{ s.ra }} — {{ s.nome or 'Sem nome' }}{% if s.ano %} ({{ s.ano }}){% endif %}</option>
+{% endfor %}

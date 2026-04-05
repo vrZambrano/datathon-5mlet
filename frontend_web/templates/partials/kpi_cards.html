@@ -1,0 +1,19 @@
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+  {% set cards = [
+    ("Total de Alunos", stats.total_alunos, "👨‍🎓", "bg-blue-50 text-blue-700"),
+    ("INDE Médio", stats.inde_medio, "📈", "bg-violet-50 text-violet-700"),
+    ("Risco Alto", stats.risco_alto, "⚠️", "bg-red-50 text-red-700"),
+    ("Clusters", stats.n_clusters, "👥", "bg-green-50 text-green-700"),
+  ] %}
+  {% for label, value, icon, style in cards %}
+  <div class="bg-white rounded-xl p-5 border border-gray-100 shadow-sm">
+    <div class="flex items-start justify-between">
+      <div>
+        <p class="text-xs font-medium text-gray-500 uppercase tracking-wide">{{ label }}</p>
+        <p class="text-3xl font-bold text-gray-900 mt-1">{{ value if value is not none else "—" }}</p>
+      </div>
+      <span class="text-2xl">{{ icon }}</span>
+    </div>
+  </div>
+  {% endfor %}
+</div>

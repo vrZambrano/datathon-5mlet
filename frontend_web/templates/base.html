@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="h-full">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}Passos Mágicos{% endblock %} — Assistente Pedagógico</title>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            pm: { purple: "#7C3AED", blue: "#2563EB", orange: "#EA580C" },
+          },
+        },
+      },
+    };
+  </script>
+
+  <!-- HTMX -->
+  <script src="https://unpkg.com/htmx.org@2.0.3" crossorigin="anonymous"></script>
+
+  <!-- Alpine.js -->
+  <script defer src="https://unpkg.com/alpinejs@3.14.1/dist/cdn.min.js"></script>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+  <!-- App JS -->
+  <script src="/static/js/charts.js" defer></script>
+
+  <style>
+    [x-cloak] { display: none !important; }
+    .htmx-indicator { display: none; }
+    .htmx-request .htmx-indicator { display: flex; }
+    .htmx-request.htmx-indicator { display: flex; }
+    /* Smooth fade for swapped content */
+    .htmx-settling { opacity: 0.3; transition: opacity 0.15s ease; }
+  </style>
+</head>
+
+<body class="h-full bg-gray-50 text-gray-800" x-data="{ sidebarOpen: true }">
+
+  <!-- Layout: sidebar + main -->
+  <div class="flex h-full min-h-screen">
+
+    <!-- Sidebar -->
+    <aside class="w-64 shrink-0 bg-white border-r border-gray-200 flex flex-col shadow-sm">
+
+      <!-- Logo -->
+      <div class="px-5 py-5 border-b border-gray-100 flex items-center gap-3">
+        <img src="/static/img/logo.png" alt="Passos Mágicos" class="h-10 w-10 object-contain" />
+        <div>
+          <p class="font-bold text-sm text-gray-900 leading-tight">Passos Mágicos</p>
+          <p class="text-xs text-gray-500">Assistente Pedagógico</p>
+        </div>
+      </div>
+
+      <!-- Nav links -->
+      <nav class="flex-1 px-3 py-4 space-y-1">
+        {% set nav = [
+          ("dashboard",   "/ui/dashboard",   "🏠", "Dashboard"),
+          ("risk",        "/ui/risk",        "📊", "Predição de Risco"),
+          ("clustering",  "/ui/clustering",  "👥", "Clusters"),
+          ("reports",     "/ui/reports",     "📝", "Relatórios LLM"),
+          ("monitoring",  "/ui/monitoring",  "📈", "Monitoramento"),
+        ] %}
+        {% for key, href, icon, label in nav %}
+        <a href="{{ href }}"
+           class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors
+                  {% if active_page == key %}
+                    bg-violet-600 text-white shadow
+                  {% else %}
+                    text-gray-700 hover:bg-gray-100
+                  {% endif %}">
+          <span class="text-base">{{ icon }}</span>
+          {{ label }}
+        </a>
+        {% endfor %}
+      </nav>
+
+      <!-- Footer -->
+      <div class="px-4 py-3 border-t border-gray-100 text-xs text-gray-400">
+        API: <a href="/docs" target="_blank" class="underline hover:text-gray-600">/docs</a>
+      </div>
+    </aside>
+
+    <!-- Main content -->
+    <main class="flex-1 overflow-y-auto">
+      <div class="max-w-7xl mx-auto px-6 py-6">
+        {% block content %}{% endblock %}
+      </div>
+    </main>
+
+  </div>
+
+  <!-- Global HTMX error toast -->
+  <div id="toast-error"
+       class="fixed bottom-5 right-5 z-50 hidden bg-red-600 text-white text-sm px-4 py-3 rounded-lg shadow-lg max-w-sm">
+    <span id="toast-msg">Erro ao carregar dados.</span>
+  </div>
+
+  <script>
+    htmx.config.allowScriptTags = true;
+
+    // Show error toast on HTMX failures
+    document.body.addEventListener("htmx:responseError", function (evt) {
+      const toast = document.getElementById("toast-error");
+      const msg = document.getElementById("toast-msg");
+      msg.textContent = "Erro " + evt.detail.xhr.status + ": " + (evt.detail.xhr.responseText.slice(0, 100) || "Falha na requisição");
+      toast.classList.remove("hidden");
+      setTimeout(() => toast.classList.add("hidden"), 5000);
+    });
+  </script>
+
+</body>
+</html>

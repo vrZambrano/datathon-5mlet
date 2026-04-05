@@ -24,6 +24,7 @@ services:
       - ../app:/app/app
       - ../src:/app/src
       - ../prompts:/app/prompts:ro
+      - ../frontend_web:/app/frontend_web:ro
     depends_on:
       - postgres
       - mlflow
@@ -32,25 +33,11 @@ services:
       - passos_network
 
   # ==========================================
-  # Frontend Streamlit
+  # Frontend Web UI (HTMX + Jinja2 + Tailwind)
+  # Servido pelo próprio container da API em /ui
+  # Acesse: http://localhost:8000/ui
   # ==========================================
-  streamlit:
-    build:
-      context: ..
-      dockerfile: docker/Dockerfile.streamlit
-    container_name: passos_magicos_frontend
-    ports:
-      - "8501:8501"
-    environment:
-      - API_URL=http://api:8000
-    volumes:
-      - ../models:/app/models:ro
-      - ../frontend:/app/frontend
-    depends_on:
-      - api
-    restart: unless-stopped
-    networks:
-      - passos_network
+  # (Streamlit removido — UI migrado para FastAPI/HTMX)
 
   # ==========================================
   # PostgreSQL (Opcional - para dados)

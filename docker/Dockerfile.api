@@ -17,6 +17,7 @@ COPY app/ ./app/
 COPY src/ ./src/
 COPY prompts/ ./prompts/
 COPY scripts/ ./scripts/
+COPY frontend_web/ ./frontend_web/
 
 # Cria diretórios necessários
 RUN mkdir -p models data/raw reports logs

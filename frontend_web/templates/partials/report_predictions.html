@@ -1,0 +1,67 @@
+{% set nivel = risk.nivel if risk and not risk.get('error') else "N/A" %}
+{% set badge_class = {
+  "ALTO": "bg-red-100 text-red-800 border border-red-300",
+  "MEDIO": "bg-yellow-100 text-yellow-800 border border-yellow-300",
+  "BAIXO": "bg-green-100 text-green-800 border border-green-300",
+} %}
+
+<!-- ML Predictions panel -->
+<div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5 mb-4">
+  <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">Predições do Modelo</p>
+
+  <div class="flex flex-wrap gap-3 mb-4">
+    {% if risk and not risk.get('error') %}
+    <span class="px-3 py-1.5 rounded-full text-sm font-semibold {{ badge_class.get(nivel, 'bg-gray-100 text-gray-700') }}">
+      Risco {{ nivel }} — {{ "%.0f%%"|format(risk.prob * 100) }}
+    </span>
+    {% else %}
+    <span class="px-3 py-1.5 rounded-full text-sm bg-gray-100 text-gray-500">Risco não disponível</span>
+    {% endif %}
+
+    {% if cluster and not cluster.get('error') %}
+    <span class="px-3 py-1.5 rounded-full text-sm font-semibold bg-violet-100 text-violet-800 border border-violet-300">
+      {{ cluster.cluster_nome }}
+    </span>
+    {% endif %}
+  </div>
+
+  {% if risk and risk.get('feat_imp') %}
+  <p class="text-xs text-gray-500 mb-1">Top features:</p>
+  <div class="flex flex-wrap gap-2">
+    {% for feat, imp in risk.feat_imp.items() %}
+    <span class="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">{{ feat }}: {{ "%.0f%%"|format(imp*100) }}</span>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+
+<!-- Spinner + LLM step auto-trigger -->
+<div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+  <div class="flex items-center gap-3 mb-3">
+    <div id="llm-spinner-ring" class="w-5 h-5">
+      <svg class="animate-spin text-violet-600 w-5 h-5" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+      </svg>
+    </div>
+    <p class="text-sm font-medium text-gray-700">Gerando relatório com IA...</p>
+  </div>
+
+  <!-- Hidden form data to pass to LLM step -->
+  <form id="report-llm-form">
+    {% for key, val in form_data.items() %}
+    <input type="hidden" name="{{ key }}" value="{{ val }}" />
+    {% endfor %}
+  </form>
+
+  <!-- Auto-trigger LLM step -->
+  <div id="report-llm-output"
+       hx-post="/ui/report/llm"
+       hx-trigger="load"
+       hx-include="#report-llm-form"
+       hx-target="#report-llm-output"
+       hx-swap="innerHTML"
+       hx-request='{"timeout":90000}'
+       class="text-sm text-gray-400">
+  </div>
+</div>

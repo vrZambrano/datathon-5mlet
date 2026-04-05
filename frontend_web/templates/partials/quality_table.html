@@ -1,0 +1,65 @@
+{% if error %}
+<div class="bg-red-50 border border-red-200 rounded-xl p-5 text-sm text-red-700">{{ error }}</div>
+{% elif quality %}
+
+<!-- KPIs -->
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+  <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+    <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Total de Registros</p>
+    <p class="text-2xl font-bold text-gray-900">{{ quality.total }}</p>
+  </div>
+  <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+    <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Taxa de Missing</p>
+    <p class="text-2xl font-bold {{ 'text-red-600' if quality.missing_rate > 10 else 'text-green-600' }}">
+      {{ quality.missing_rate }}%
+    </p>
+  </div>
+  <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+    <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Colunas</p>
+    <p class="text-2xl font-bold text-gray-900">{{ quality.n_colunas }}</p>
+  </div>
+  <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+    <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Duplicados</p>
+    <p class="text-2xl font-bold {{ 'text-yellow-600' if quality.n_duplicados > 0 else 'text-green-600' }}">
+      {{ quality.n_duplicados }}
+    </p>
+  </div>
+</div>
+
+<!-- Feature stats table -->
+<div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+  <div class="px-5 py-3 border-b border-gray-100">
+    <p class="text-sm font-medium text-gray-700">Estatísticas por Feature</p>
+  </div>
+  <table class="w-full text-sm">
+    <thead>
+      <tr class="bg-gray-50 border-b border-gray-100">
+        {% for col in ["Feature", "Média", "Desvio Padrão", "Mínimo", "Máximo", "Missing %"] %}
+        <th class="py-3 px-4 text-xs font-medium text-gray-500 uppercase tracking-wide {{ 'text-left' if loop.first else 'text-right' }}">
+          {{ col }}
+        </th>
+        {% endfor %}
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-50">
+      {% for feat, stats in quality.feature_stats.items() %}
+      <tr class="hover:bg-gray-50">
+        <td class="py-3 px-4 font-medium">{{ feat }}</td>
+        <td class="py-3 px-4 text-right font-mono">{{ stats.mean }}</td>
+        <td class="py-3 px-4 text-right font-mono text-gray-500">{{ stats.std }}</td>
+        <td class="py-3 px-4 text-right font-mono text-gray-500">{{ stats.min }}</td>
+        <td class="py-3 px-4 text-right font-mono text-gray-500">{{ stats.max }}</td>
+        <td class="py-3 px-4 text-right">
+          <span class="px-2 py-0.5 rounded text-xs {{ 'bg-red-100 text-red-700' if stats.missing_pct > 10 else 'bg-gray-100 text-gray-600' }}">
+            {{ stats.missing_pct }}%
+          </span>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% else %}
+<div class="text-sm text-gray-400 text-center py-6">Dados não disponíveis.</div>
+{% endif %}

@@ -1,0 +1,35 @@
+{% if error %}
+<div class="bg-red-50 border border-red-200 rounded-xl p-5 text-sm text-red-700">
+  <p class="font-semibold mb-1">Erro ao gerar relatório</p>
+  <p>{{ error }}</p>
+</div>
+{% elif relatorio_html %}
+
+<!-- Hide spinner -->
+<script>
+  const spinner = document.getElementById("llm-spinner-ring");
+  if (spinner) spinner.style.display = "none";
+</script>
+
+<!-- Report header -->
+<div class="flex items-center justify-between mb-3">
+  <p class="text-sm font-medium text-gray-700">📝 Relatório Pedagógico — {{ nome or aluno_id }}</p>
+  <a href="/ui/report/download?aluno_id={{ aluno_id }}&conteudo={{ relatorio_raw | urlencode }}"
+     class="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1">
+    📥 Baixar .txt
+  </a>
+</div>
+
+<!-- Report content -->
+<div class="prose prose-sm max-w-none text-gray-800 bg-white rounded-xl border border-gray-100 p-5 shadow-sm
+            [&_h1]:text-xl [&_h1]:font-bold [&_h1]:text-gray-900 [&_h1]:mt-0
+            [&_h2]:text-base [&_h2]:font-semibold [&_h2]:text-gray-800 [&_h2]:mt-4
+            [&_h3]:text-sm [&_h3]:font-semibold [&_h3]:text-gray-700
+            [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5
+            [&_strong]:font-semibold">
+  {{ relatorio_html | safe }}
+</div>
+
+{% else %}
+<div class="text-sm text-gray-400 text-center py-6">Nenhum conteúdo gerado.</div>
+{% endif %}

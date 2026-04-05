@@ -10,13 +10,14 @@ Esta API fornece endpoints para:
 
 from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from loguru import logger
 
 from app.core.config import get_settings
 from app.core.logger import setup_logging
 
 # Import routers
-from app.routes import health, predict, cluster, enrich
+from app.routes import health, predict, cluster, enrich, web
 
 # Import exceptions (se houver)
 
@@ -110,11 +111,15 @@ async def root():
     }
 
 
+# Static files for Web UI
+app.mount("/static", StaticFiles(directory="frontend_web/static"), name="static")
+
 # Include routers
 app.include_router(health.router, prefix="/health", tags=["Health"])
 app.include_router(predict.router, prefix="/predict", tags=["Prediction"])
 app.include_router(cluster.router, prefix="/predict", tags=["Clustering"])
 app.include_router(enrich.router, prefix="/enrich", tags=["LLM Enrichment"])
+app.include_router(web.router, prefix="/ui", tags=["Web UI"])
 
 
 # ============================================================================

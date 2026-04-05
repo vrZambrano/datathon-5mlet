@@ -1,0 +1,82 @@
+{% if error %}
+<div class="bg-red-50 border border-red-200 rounded-xl p-5 text-sm text-red-700">{{ error }}</div>
+{% else %}
+
+{% set data = drift.get('drift_analysis', drift) if drift else {} %}
+{% set dataset_drift = drift.get('dataset_drift', False) %}
+{% set n_drifted = drift.get('n_drifted_features', 0) %}
+{% set drift_share = drift.get('drift_share', 0) %}
+
+<!-- KPIs -->
+<div class="grid grid-cols-3 gap-4 mb-6">
+  <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+    <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Drift Detectado</p>
+    <p class="text-2xl font-bold {{ 'text-red-600' if dataset_drift else 'text-green-600' }}">
+      {{ "SIM" if dataset_drift else "NÃO" }}
+    </p>
+  </div>
+  <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+    <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Proporção com Drift</p>
+    <p class="text-2xl font-bold text-gray-900">{{ "%.0f%%"|format(drift_share * 100) if drift_share else "—" }}</p>
+  </div>
+  <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+    <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Features com Drift</p>
+    <p class="text-2xl font-bold text-gray-900">{{ n_drifted }}</p>
+  </div>
+</div>
+
+<!-- Comparação selector -->
+{% if comparacoes %}
+<div class="mb-4 flex items-center gap-3">
+  <label class="text-sm text-gray-600">Comparação:</label>
+  <select hx-get="/ui/partials/drift-table"
+          hx-target="closest div[hx-get]"
+          hx-swap="innerHTML"
+          hx-trigger="change"
+          name="comparacao"
+          class="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-violet-400">
+    {% for comp in comparacoes %}
+    <option value="{{ comp }}" {{ 'selected' if comp == selected }}>{{ comp.replace('_', ' ') }}</option>
+    {% endfor %}
+  </select>
+</div>
+{% endif %}
+
+<!-- Feature drift table -->
+{% set feature_drift = drift.get('feature_drift', {}) %}
+{% if feature_drift %}
+<div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+  <table class="w-full text-sm">
+    <thead>
+      <tr class="bg-gray-50 border-b border-gray-100">
+        <th class="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase tracking-wide">Feature</th>
+        <th class="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase tracking-wide">Drift</th>
+        <th class="text-right py-3 px-4 text-xs font-medium text-gray-500 uppercase tracking-wide">P-value</th>
+        <th class="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase tracking-wide">Teste</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-50">
+      {% for feat, info in feature_drift.items() %}
+      {% set has_drift = info.get('drift_detected', False) %}
+      <tr class="hover:bg-gray-50">
+        <td class="py-3 px-4 font-medium">{{ feat }}</td>
+        <td class="py-3 px-4">
+          <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium
+                       {{ 'bg-red-100 text-red-700' if has_drift else 'bg-green-100 text-green-700' }}">
+            {{ "⚠️ SIM" if has_drift else "✅ NÃO" }}
+          </span>
+        </td>
+        <td class="py-3 px-4 text-right font-mono text-gray-600">
+          {{ "%.4f"|format(info.get('drift_score', 0)) if info.get('drift_score') is not none else "—" }}
+        </td>
+        <td class="py-3 px-4 text-xs text-gray-500">{{ info.get('stattest_name', '—') }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="text-sm text-gray-400 text-center py-6">Dados de drift não disponíveis.</div>
+{% endif %}
+
+{% endif %}

@@ -1,0 +1,12 @@
+{% if error %}
+<div class="bg-red-50 border border-red-200 rounded-xl p-5 text-sm text-red-700">{{ error }}</div>
+{% elif llm_html %}
+<div class="prose prose-sm max-w-none text-gray-800
+            [&_h2]:text-base [&_h2]:font-semibold [&_h2]:text-gray-800 [&_h2]:mt-5 [&_h2]:mb-2
+            [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5
+            [&_strong]:font-semibold">
+  {{ llm_html | safe }}
+</div>
+{% else %}
+<div class="text-sm text-gray-400 text-center py-6">Nenhuma análise disponível.</div>
+{% endif %}

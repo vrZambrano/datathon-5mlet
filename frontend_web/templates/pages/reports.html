@@ -1,0 +1,193 @@
+{% extends "base.html" %}
+{% block title %}Relatórios LLM{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+  <h1 class="text-2xl font-bold text-gray-900">Relatórios Pedagógicos</h1>
+  <p class="text-sm text-gray-500 mt-1">Geração de relatórios personalizados com IA (Claude Sonnet via OpenRouter)</p>
+</div>
+
+<div class="grid grid-cols-1 xl:grid-cols-5 gap-6"
+     x-data="{
+       inde: 6.35, ieg: 6.47, ida: 6.75, ips: 5.89, iaa: 6.12,
+       ian: 6.0, ipp: 6.0, ipv: 6.0,
+       anos: 1, tendencia: 0, pedras_mudadas: 0,
+       delta_inde: 0, delta_ieg: 0, delta_ida: 0,
+       ano_sel: '', pedra_sel: 'Quartzo',
+       aluno_id: '', nome: '', idade: 15,
+       fillFromStudent(s) {
+         if (!s) return;
+         this.aluno_id = s.ra ?? '';
+         this.nome = s.nome ?? '';
+         this.inde = s.inde ?? this.inde;
+         this.ieg = s.ieg ?? this.ieg;
+         this.ida = s.ida ?? this.ida;
+         this.ips = s.ips ?? this.ips;
+         this.iaa = s.iaa ?? this.iaa;
+         this.ian = s.ian ?? this.ian;
+         this.ipp = s.ipp ?? this.ipp;
+         this.ipv = s.ipv ?? this.ipv;
+         this.anos = s.anos_no_programa ?? this.anos;
+         this.tendencia = s.tendencia_inde ?? 0;
+         this.pedras_mudadas = s.pedras_mudadas_total ?? 0;
+         this.delta_inde = s.delta_inde ?? 0;
+         this.delta_ieg = s.delta_ieg ?? 0;
+         this.delta_ida = s.delta_ida ?? 0;
+         if (s.pedra) this.pedra_sel = s.pedra;
+       }
+     }">
+
+  <!-- Form (xl:col-span-2) -->
+  <div class="xl:col-span-2 bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+
+    <!-- Student selector -->
+    <div class="mb-5 pb-5 border-b border-gray-100">
+      <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Buscar aluno</label>
+      <div class="flex gap-2 mb-2">
+        <select id="rep-ano" x-model="ano_sel"
+                hx-get="/ui/partials/student-options"
+                hx-target="#rep-student-select"
+                hx-include="#rep-ano"
+                hx-trigger="change"
+                class="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-violet-400 w-28">
+          <option value="">Ano</option>
+          <option value="2022">2022</option>
+          <option value="2023">2023</option>
+          <option value="2024">2024</option>
+        </select>
+        <select id="rep-student-select"
+                hx-get="/ui/partials/student-data"
+                hx-target="#rep-student-fill"
+                hx-include="#rep-ano, #rep-student-select"
+                hx-trigger="change"
+                class="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-violet-400">
+          <option value="">— Selecione um aluno —</option>
+        </select>
+      </div>
+      <div id="rep-student-fill"></div>
+    </div>
+
+    <form id="report-form"
+          hx-post="/ui/report/predictions"
+          hx-target="#report-output"
+          hx-swap="innerHTML"
+          hx-indicator="#rep-spinner"
+          hx-request='{"timeout":90000}'>
+
+      <!-- Identity row -->
+      <div class="grid grid-cols-2 gap-3 mb-4">
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1">RA / ID</label>
+          <input type="text" name="aluno_id" x-model="aluno_id" placeholder="RA-0000"
+                 class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-violet-400" />
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1">Nome</label>
+          <input type="text" name="nome" x-model="nome" placeholder="Nome do aluno"
+                 class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-violet-400" />
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1">Idade</label>
+          <input type="number" name="idade" x-model.number="idade" min="5" max="100"
+                 class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-violet-400" />
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1">Pedra</label>
+          <select name="pedra" x-model="pedra_sel"
+                  class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-violet-400">
+            <option>Quartzo</option>
+            <option>Ágata</option>
+            <option>Ametista</option>
+            <option>Topázio</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Indicator sliders -->
+      {% macro slider(label, name, model) %}
+      <div class="mb-3">
+        <div class="flex justify-between items-center mb-1">
+          <label class="text-xs font-medium text-gray-700">{{ label }}</label>
+          <span class="text-xs font-mono text-violet-600" x-text="{{ model }}.toFixed(1)"></span>
+        </div>
+        <input type="range" x-model.number="{{ model }}"
+               min="0" max="10" step="0.1"
+               class="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-violet-600" />
+        <input type="hidden" name="{{ name }}" :value="{{ model }}" />
+      </div>
+      {% endmacro %}
+
+      {{ slider("INDE", "inde", "inde") }}
+      {{ slider("IEG — Engajamento", "ieg", "ieg") }}
+      {{ slider("IDA — Desempenho Acadêmico", "ida", "ida") }}
+      {{ slider("IPS — Psicossocial", "ips", "ips") }}
+      {{ slider("IAA — Autoavaliação", "iaa", "iaa") }}
+      {{ slider("IAN — Adequação ao Nível", "ian", "ian") }}
+      {{ slider("IPP — Psicopedagógico", "ipp", "ipp") }}
+      {{ slider("IPV — Ponto de Virada", "ipv", "ipv") }}
+
+      <div class="mb-3">
+        <div class="flex justify-between items-center mb-1">
+          <label class="text-xs font-medium text-gray-700">Anos no Programa</label>
+          <span class="text-xs font-mono text-violet-600" x-text="anos"></span>
+        </div>
+        <input type="range" x-model.number="anos" min="1" max="10" step="1"
+               class="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-violet-600" />
+        <input type="hidden" name="anos_no_programa" :value="anos" />
+      </div>
+
+      <!-- Feedback -->
+      <div class="mb-4">
+        <label class="block text-xs font-medium text-gray-600 mb-1">Feedbacks anteriores (opcional)</label>
+        <textarea name="feedback" rows="3" placeholder="Observações do professor sobre o aluno..."
+                  class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-violet-400 resize-none"></textarea>
+      </div>
+
+      <!-- Hidden temporal features -->
+      <input type="hidden" name="tendencia_inde" :value="tendencia" />
+      <input type="hidden" name="pedras_mudadas_total" :value="pedras_mudadas" />
+      <input type="hidden" name="delta_inde" :value="delta_inde" />
+      <input type="hidden" name="delta_ieg" :value="delta_ieg" />
+      <input type="hidden" name="delta_ida" :value="delta_ida" />
+      <input type="hidden" name="idade" :value="idade" />
+      <input type="hidden" name="aluno_id" :value="aluno_id" />
+      <input type="hidden" name="nome" :value="nome" />
+      <input type="hidden" name="pedra" :value="pedra_sel" />
+
+      <button type="submit"
+              class="w-full bg-violet-600 hover:bg-violet-700 text-white font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2 text-sm">
+        <span class="htmx-indicator" id="rep-spinner">
+          <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+          </svg>
+        </span>
+        🤖 Gerar Relatório
+      </button>
+    </form>
+  </div>
+
+  <!-- Output (xl:col-span-3) -->
+  <div id="report-output" class="xl:col-span-3 flex flex-col gap-4">
+    <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-10 text-center text-gray-400">
+      <p class="text-5xl mb-4">📝</p>
+      <p class="text-sm">Preencha os dados do aluno e clique em <strong>Gerar Relatório</strong></p>
+      <p class="text-xs mt-2 text-gray-300">O processo leva ~10–30 segundos</p>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  document.body.addEventListener("htmx:afterSwap", function(e) {
+    if (e.detail.target.id === "rep-student-fill") {
+      const data = e.detail.target.querySelector("[data-student-json]");
+      if (data) {
+        const student = JSON.parse(data.getAttribute("data-student-json"));
+        const comp = Alpine.closestDataStack(document.getElementById("report-form"));
+        if (comp && comp[0]) comp[0].fillFromStudent(student);
+      }
+    }
+  });
+</script>
+{% endblock %}
