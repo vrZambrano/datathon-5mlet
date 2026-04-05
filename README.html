@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>README.md</title>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8">
+
+<style>
+/* https://github.com/microsoft/vscode/blob/master/extensions/markdown-language-features/media/markdown.css */
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+body {
+	font-family: var(--vscode-markdown-font-family, -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", "Ubuntu", "Droid Sans", sans-serif);
+	font-size: var(--vscode-markdown-font-size, 14px);
+	padding: 0 26px;
+	line-height: var(--vscode-markdown-line-height, 22px);
+	word-wrap: break-word;
+}
+
+#code-csp-warning {
+	position: fixed;
+	top: 0;
+	right: 0;
+	color: white;
+	margin: 16px;
+	text-align: center;
+	font-size: 12px;
+	font-family: sans-serif;
+	background-color:#444444;
+	cursor: pointer;
+	padding: 6px;
+	box-shadow: 1px 1px 1px rgba(0,0,0,.25);
+}
+
+#code-csp-warning:hover {
+	text-decoration: none;
+	background-color:#007acc;
+	box-shadow: 2px 2px 2px rgba(0,0,0,.25);
+}
+
+body.scrollBeyondLastLine {
+	margin-bottom: calc(100vh - 22px);
+}
+
+body.showEditorSelection .code-line {
+	position: relative;
+}
+
+body.showEditorSelection .code-active-line:before,
+body.showEditorSelection .code-line:hover:before {
+	content: "";
+	display: block;
+	position: absolute;
+	top: 0;
+	left: -12px;
+	height: 100%;
+}
+
+body.showEditorSelection li.code-active-line:before,
+body.showEditorSelection li.code-line:hover:before {
+	left: -30px;
+}
+
+.vscode-light.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(0, 0, 0, 0.15);
+}
+
+.vscode-light.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(0, 0, 0, 0.40);
+}
+
+.vscode-light.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+.vscode-dark.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(255, 255, 255, 0.4);
+}
+
+.vscode-dark.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(255, 255, 255, 0.60);
+}
+
+.vscode-dark.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+.vscode-high-contrast.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(255, 160, 0, 0.7);
+}
+
+.vscode-high-contrast.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(255, 160, 0, 1);
+}
+
+.vscode-high-contrast.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+img {
+	max-width: 100%;
+	max-height: 100%;
+}
+
+a {
+	text-decoration: none;
+}
+
+a:hover {
+	text-decoration: underline;
+}
+
+a:focus,
+input:focus,
+select:focus,
+textarea:focus {
+	outline: 1px solid -webkit-focus-ring-color;
+	outline-offset: -1px;
+}
+
+hr {
+	border: 0;
+	height: 2px;
+	border-bottom: 2px solid;
+}
+
+h1 {
+	padding-bottom: 0.3em;
+	line-height: 1.2;
+	border-bottom-width: 1px;
+	border-bottom-style: solid;
+}
+
+h1, h2, h3 {
+	font-weight: normal;
+}
+
+table {
+	border-collapse: collapse;
+}
+
+table > thead > tr > th {
+	text-align: left;
+	border-bottom: 1px solid;
+}
+
+table > thead > tr > th,
+table > thead > tr > td,
+table > tbody > tr > th,
+table > tbody > tr > td {
+	padding: 5px 10px;
+}
+
+table > tbody > tr + tr > td {
+	border-top: 1px solid;
+}
+
+blockquote {
+	margin: 0 7px 0 5px;
+	padding: 0 16px 0 10px;
+	border-left-width: 5px;
+	border-left-style: solid;
+}
+
+code {
+	font-family: Menlo, Monaco, Consolas, "Droid Sans Mono", "Courier New", monospace, "Droid Sans Fallback";
+	font-size: 1em;
+	line-height: 1.357em;
+}
+
+body.wordWrap pre {
+	white-space: pre-wrap;
+}
+
+pre:not(.hljs),
+pre.hljs code > div {
+	padding: 16px;
+	border-radius: 3px;
+	overflow: auto;
+}
+
+pre code {
+	color: var(--vscode-editor-foreground);
+	tab-size: 4;
+}
+
+/** Theming */
+
+.vscode-light pre {
+	background-color: rgba(220, 220, 220, 0.4);
+}
+
+.vscode-dark pre {
+	background-color: rgba(10, 10, 10, 0.4);
+}
+
+.vscode-high-contrast pre {
+	background-color: rgb(0, 0, 0);
+}
+
+.vscode-high-contrast h1 {
+	border-color: rgb(0, 0, 0);
+}
+
+.vscode-light table > thead > tr > th {
+	border-color: rgba(0, 0, 0, 0.69);
+}
+
+.vscode-dark table > thead > tr > th {
+	border-color: rgba(255, 255, 255, 0.69);
+}
+
+.vscode-light h1,
+.vscode-light hr,
+.vscode-light table > tbody > tr + tr > td {
+	border-color: rgba(0, 0, 0, 0.18);
+}
+
+.vscode-dark h1,
+.vscode-dark hr,
+.vscode-dark table > tbody > tr + tr > td {
+	border-color: rgba(255, 255, 255, 0.18);
+}
+
+</style>
+
+<style>
+/* Tomorrow Theme */
+/* http://jmblog.github.com/color-themes-for-google-code-highlightjs */
+/* Original theme - https://github.com/chriskempson/tomorrow-theme */
+
+/* Tomorrow Comment */
+.hljs-comment,
+.hljs-quote {
+	color: #8e908c;
+}
+
+/* Tomorrow Red */
+.hljs-variable,
+.hljs-template-variable,
+.hljs-tag,
+.hljs-name,
+.hljs-selector-id,
+.hljs-selector-class,
+.hljs-regexp,
+.hljs-deletion {
+	color: #c82829;
+}
+
+/* Tomorrow Orange */
+.hljs-number,
+.hljs-built_in,
+.hljs-builtin-name,
+.hljs-literal,
+.hljs-type,
+.hljs-params,
+.hljs-meta,
+.hljs-link {
+	color: #f5871f;
+}
+
+/* Tomorrow Yellow */
+.hljs-attribute {
+	color: #eab700;
+}
+
+/* Tomorrow Green */
+.hljs-string,
+.hljs-symbol,
+.hljs-bullet,
+.hljs-addition {
+	color: #718c00;
+}
+
+/* Tomorrow Blue */
+.hljs-title,
+.hljs-section {
+	color: #4271ae;
+}
+
+/* Tomorrow Purple */
+.hljs-keyword,
+.hljs-selector-tag {
+	color: #8959a8;
+}
+
+.hljs {
+	display: block;
+	overflow-x: auto;
+	color: #4d4d4c;
+	padding: 0.5em;
+}
+
+.hljs-emphasis {
+	font-style: italic;
+}
+
+.hljs-strong {
+	font-weight: bold;
+}
+</style>
+
+<style>
+/*
+ * Markdown PDF CSS
+ */
+
+ body {
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", "Ubuntu", "Droid Sans", sans-serif, "Meiryo";
+	padding: 0 12px;
+}
+
+pre {
+	background-color: #f8f8f8;
+	border: 1px solid #cccccc;
+	border-radius: 3px;
+	overflow-x: auto;
+	white-space: pre-wrap;
+	overflow-wrap: break-word;
+}
+
+pre:not(.hljs) {
+	padding: 23px;
+	line-height: 19px;
+}
+
+blockquote {
+	background: rgba(127, 127, 127, 0.1);
+	border-color: rgba(0, 122, 204, 0.5);
+}
+
+.emoji {
+	height: 1.4em;
+}
+
+code {
+	font-size: 14px;
+	line-height: 19px;
+}
+
+/* for inline code */
+:not(pre):not(.hljs) > code {
+	color: #C9AE75; /* Change the old color so it seems less like an error */
+	font-size: inherit;
+}
+
+/* Page Break : use <div class="page"/> to insert page break
+-------------------------------------------------------- */
+.page {
+	page-break-after: always;
+}
+
+</style>
+
+<script src="https://unpkg.com/mermaid/dist/mermaid.min.js"></script>
+</head>
+<body>
+  <script>
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: document.body.classList.contains('vscode-dark') || document.body.classList.contains('vscode-high-contrast')
+          ? 'dark'
+          : 'default'
+    });
+  </script>
+<h1 id="%F0%9F%8E%93-passos-m%C3%A1gicos---assistente-pedag%C3%B3gico-inteligente">🎓 Passos Mágicos - Assistente Pedagógico Inteligente</h1>
+<p>Sistema de Machine Learning para a ONG Passos Mágicos, desenvolvido para o Datathon de Engenharia de Machine Learning.</p>
+<h2 id="%F0%9F%93%8B-descri%C3%A7%C3%A3o">📋 Descrição</h2>
+<p>Este sistema utiliza Inteligência Artificial para auxiliar professores e educadores da ONG Passos Mágicos a:</p>
+<ul>
+<li>📊 <strong>Prever riscos de queda de desempenho</strong> - Identificar alunos com risco de cair de nível (pedra)</li>
+<li>👥 <strong>Agrupar perfis de alunos</strong> - Clusterização para ações pedagógicas personalizadas</li>
+<li>📝 <strong>Gerar relatórios personalizados</strong> - Uso de LLM (Claude Sonnet 4) para criar recomendações pedagógicas</li>
+</ul>
+<h2 id="%F0%9F%8F%97%EF%B8%8F-arquitetura">🏗️ Arquitetura</h2>
+<pre class="hljs"><code><div>                              ┌─────────────────────────────────────────────────────────┐
+                              │                    Docker Compose                       │
+                              │                                                         │
+┌──────────────┐              │  ┌──────────────┐     ┌──────────────┐                  │
+│   Browser    │──────────────┼─▶│  Streamlit   │────▶│   FastAPI    │                  │
+│   :8501      │              │  │  (Frontend)  │     │   (API)      │                  │
+└──────────────┘              │  └──────────────┘     └──────┬───────┘                  │
+                              │                              │                          │
+                              │         ┌────────────────────┼────────────────┐         │
+                              │         │                    │                │         │
+                              │         ▼                    ▼                ▼         │
+                              │  ┌──────────────┐     ┌──────────────┐ ┌──────────────┐ │
+                              │  │  ML Models   │     │  Evidently   │ │    LLM       │ │
+                              │  │  .pkl files  │     │  (Drift)     │ │  (OpenRouter)│ │
+                              │  │  XGBoost     │     └──────────────┘ └──────────────┘ │
+                              │  │  K-Means     │                             │         │
+                              │  └──────────────┘                             │         │
+                              │         │                                     ▼         │
+                              │         │ logs metrics              ┌──────────────┐    │
+                              │         └────────────────────────── │   Claude     │    │
+                              │                                     │   Sonnet 4   │    │
+                              │  ┌──────────────┐     ┌──────────────┐              │    │
+                              │  │   MLflow     │     │  PostgreSQL  │ (external)   │    │
+                              │  │   :5001      │     │   :5432      │              │    │
+                              │  │  (Tracking)  │     │  (Opcional)  │              │    
+                              │  └──────────────┘     └──────────────┘              │    │
+                              │         │                                           │    │
+                              │         ▼                                           │    │
+                              │  ┌──────────────┐                                   │    │
+                              │  │    MinIO     │                                   │    │
+                              │  │   :9001      │                                   │    │
+                              │  │  (Artifacts) │                                   │    │
+                              │  └──────────────┘                                   │    │
+                              └─────────────────────────────────────────────────────────┘
+
+Fluxo de dados:
+1. Browser → Streamlit (UI) → FastAPI (REST API)
+2. FastAPI → ML Models (.pkl) → Predições de risco/cluster
+3. FastAPI → Evidently AI → Análise de data drift
+4. FastAPI → OpenRouter → Claude Sonnet 4 (relatórios LLM)
+5. Train script → MLflow → Métricas e parâmetros dos modelos
+</div></code></pre>
+<h2 id="%F0%9F%9B%A0%EF%B8%8F-tecnologias">🛠️ Tecnologias</h2>
+<table>
+<thead>
+<tr>
+<th>Componente</th>
+<th>Tecnologia</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>API</strong></td>
+<td>FastAPI</td>
+</tr>
+<tr>
+<td><strong>Frontend</strong></td>
+<td>Streamlit</td>
+</tr>
+<tr>
+<td><strong>ML</strong></td>
+<td>XGBoost, Scikit-learn, K-Means</td>
+</tr>
+<tr>
+<td><strong>MLOps</strong></td>
+<td>MLflow, Docker</td>
+</tr>
+<tr>
+<td><strong>Monitoramento</strong></td>
+<td>Evidently AI (Data Drift)</td>
+</tr>
+<tr>
+<td><strong>LLM</strong></td>
+<td>Claude Sonnet 4 via OpenRouter</td>
+</tr>
+<tr>
+<td><strong>Testes</strong></td>
+<td>pytest (151 testes, 84% cobertura)</td>
+</tr>
+</tbody>
+</table>
+<h2 id="%F0%9F%93%A6-estrutura-do-projeto">📦 Estrutura do Projeto</h2>
+<pre class="hljs"><code><div>datathon-5mlet/
+├── app/                    # API FastAPI
+│   ├── main.py            # Entry point
+│   ├── routes/            # Endpoints (/predict, /enrich, /health)
+│   ├── models/            # Pydantic schemas
+│   ├── services/          # LLM service
+│   └── core/              # Config e logger
+├── frontend/              # Streamlit
+│   └── main.py            # Aplicação web (dashboard, predições, relatórios)
+├── src/                   # ML Pipeline
+│   ├── data/              # Loader, preprocessing, feature engineering
+│   ├── models/            # Train classifier e clustering
+│   ├── monitoring/        # Data drift (Evidently AI)
+│   └── utils/             # Constants e helpers
+├── scripts/               # Scripts de execução
+│   └── train_all.py       # Treina todos os modelos
+├── tests/                 # Testes unitários (151 testes, 84% cobertura)
+│   ├── test_data/         # Testes de loader, preprocessing, feature eng.
+│   ├── test_models/       # Testes de classifier e clustering
+│   ├── test_api/          # Testes de endpoints
+│   ├── test_services/     # Testes de LLM service
+│   ├── test_monitoring/   # Testes de drift
+│   └── test_core/         # Testes de config e logger
+├── docker/                # Docker configuration
+│   ├── docker-compose.yml # Orquestração (5 serviços)
+│   ├── Dockerfile.api     # Build da API
+│   └── Dockerfile.streamlit # Build do frontend
+├── data/                  # Datasets (não versionado)
+├── models/                # Modelos treinados (.pkl)
+├── prompts/               # Templates para LLM
+├── requirements.txt       # Dependências Python
+├── pyproject.toml         # Configuração pytest + coverage
+└── .env.example           # Variáveis de ambiente
+</div></code></pre>
+<h2 id="%F0%9F%9A%80-guia-de-instala%C3%A7%C3%A3o-r%C3%A1pida">🚀 Guia de Instalação Rápida</h2>
+<h3 id="1-clonar-o-reposit%C3%B3rio">1. Clonar o repositório</h3>
+<pre class="hljs"><code><div><span class="hljs-built_in">cd</span> /path/to/datathon-5mlet
+</div></code></pre>
+<h3 id="2-criar-ambiente-virtual">2. Criar ambiente virtual</h3>
+<pre class="hljs"><code><div>python -m venv venv
+<span class="hljs-built_in">source</span> venv/bin/activate  <span class="hljs-comment"># Linux/Mac</span>
+<span class="hljs-comment"># ou</span>
+venv\Scripts\activate     <span class="hljs-comment"># Windows</span>
+</div></code></pre>
+<h3 id="3-instalar-depend%C3%AAncias">3. Instalar dependências</h3>
+<pre class="hljs"><code><div>pip install -r requirements.txt
+</div></code></pre>
+<h3 id="4-configurar-vari%C3%A1veis-de-ambiente">4. Configurar variáveis de ambiente</h3>
+<pre class="hljs"><code><div>cp .env.example .env
+<span class="hljs-comment"># Edite .env com suas configurações, especialmente:</span>
+<span class="hljs-comment"># OPENROUTER_API_KEY=sk-or-v1-sua-chave-aqui</span>
+</div></code></pre>
+<h3 id="5-mover-os-datasets-para-o-diret%C3%B3rio-dataraw">5. Mover os datasets para o diretório data/raw/</h3>
+<pre class="hljs"><code><div><span class="hljs-comment"># Coloque os CSVs em data/raw/</span>
+</div></code></pre>
+<h3 id="6-treinar-os-modelos">6. Treinar os modelos</h3>
+<pre class="hljs"><code><div>python scripts/train_all.py
+</div></code></pre>
+<h3 id="7-executar-a-api">7. Executar a API</h3>
+<pre class="hljs"><code><div>uvicorn app.main:app --reload
+</div></code></pre>
+<p>A API estará disponível em <code>http://localhost:8000</code></p>
+<h3 id="8-executar-o-frontend-em-outro-terminal">8. Executar o Frontend (em outro terminal)</h3>
+<pre class="hljs"><code><div>streamlit run frontend/main.py
+</div></code></pre>
+<p>O frontend estará disponível em <code>http://localhost:8501</code></p>
+<h2 id="%F0%9F%90%B3-docker">🐳 Docker</h2>
+<p>Para subir todos os serviços com Docker:</p>
+<pre class="hljs"><code><div><span class="hljs-built_in">cd</span> docker
+docker-compose up --build
+</div></code></pre>
+<h3 id="servi%C3%A7os">Serviços</h3>
+<table>
+<thead>
+<tr>
+<th>Serviço</th>
+<th>URL</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>API</strong></td>
+<td>http://localhost:8000</td>
+<td>✅ Core</td>
+</tr>
+<tr>
+<td><strong>Frontend</strong></td>
+<td>http://localhost:8501</td>
+<td>✅ Core</td>
+</tr>
+<tr>
+<td><strong>MLflow</strong></td>
+<td>http://localhost:5001</td>
+<td>✅ Tracking de experimentos</td>
+</tr>
+<tr>
+<td><strong>PostgreSQL</strong></td>
+<td>localhost:5432</td>
+<td>⚠️ Disponível (não utilizado atualmente)</td>
+</tr>
+<tr>
+<td><strong>MinIO</strong></td>
+<td>http://localhost:9001</td>
+<td>⚠️ Storage S3 (opcional para artifacts)</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Nota:</strong> A API atualmente lê dados diretamente dos arquivos <code>.pkl</code> e CSV. O PostgreSQL está configurado para uso futuro (persistência de predições, logs de usuários, etc.).</p>
+</blockquote>
+<h2 id="%F0%9F%93%9A-endpoints-da-api">📚 Endpoints da API</h2>
+<table>
+<thead>
+<tr>
+<th>Método</th>
+<th>Endpoint</th>
+<th>Descrição</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>GET</td>
+<td><code>/</code></td>
+<td>Informações da API</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/health</code></td>
+<td>Health check</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/health/metrics</code></td>
+<td>Uptime, status dos modelos, ambiente</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/health/stats</code></td>
+<td>Estatísticas do dashboard (INDE médio, distribuição de pedras, clusters)</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/health/students</code></td>
+<td>Lista de alunos com indicadores (filtro por <code>?ano=</code>)</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/health/drift</code></td>
+<td>Análise de data drift entre anos (Evidently AI)</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/health/quality</code></td>
+<td>Métricas de qualidade dos dados</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/health/drift/report</code></td>
+<td>Relatório visual Evidently (HTML)</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/health/drift/llm-analysis</code></td>
+<td>Análise de drift via LLM</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/predict/risk</code></td>
+<td>Predição de risco de queda</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/predict/cluster</code></td>
+<td>Predição de cluster/perfil</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/enrich/report</code></td>
+<td>Geração de relatório LLM</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/enrich/models</code></td>
+<td>Modelos LLM disponíveis</td>
+</tr>
+</tbody>
+</table>
+<h3 id="exemplo-de-uso---predi%C3%A7%C3%A3o-de-risco">Exemplo de Uso - Predição de Risco</h3>
+<pre class="hljs"><code><div>curl -X POST http://localhost:8000/predict/risk \
+  -H <span class="hljs-string">"Content-Type: application/json"</span> \
+  -d <span class="hljs-string">'{
+    "aluno_id": "RA-1234",
+    "ano": 2024,
+    "inde": 7.5,
+    "ieg": 6.2,
+    "ida": 7.0,
+    "anos_no_programa": 3
+  }'</span>
+</div></code></pre>
+<p><strong>Resposta:</strong></p>
+<pre class="hljs"><code><div>{
+  <span class="hljs-attr">"aluno_id"</span>: <span class="hljs-string">"RA-1234"</span>,
+  <span class="hljs-attr">"risco_probabilidade"</span>: <span class="hljs-number">0.35</span>,
+  <span class="hljs-attr">"risco_classe"</span>: <span class="hljs-string">"BAIXO"</span>,
+  <span class="hljs-attr">"vai_cair"</span>: <span class="hljs-literal">false</span>,
+  <span class="hljs-attr">"features_importantes"</span>: {
+    <span class="hljs-attr">"tendencia_INDE"</span>: <span class="hljs-number">0.262</span>,
+    <span class="hljs-attr">"delta_INDE"</span>: <span class="hljs-number">0.137</span>,
+    <span class="hljs-attr">"pedras_mudadas_total"</span>: <span class="hljs-number">0.115</span>
+  }
+}
+</div></code></pre>
+<h3 id="exemplo-de-uso---clusteriza%C3%A7%C3%A3o">Exemplo de Uso - Clusterização</h3>
+<pre class="hljs"><code><div>curl -X POST http://localhost:8000/predict/cluster \
+  -H <span class="hljs-string">"Content-Type: application/json"</span> \
+  -d <span class="hljs-string">'{
+    "aluno_id": "RA-1234",
+    "inde": 7.5,
+    "ieg": 6.2,
+    "ida": 7.0,
+    "ips": 5.5,
+    "iaa": 6.0
+  }'</span>
+</div></code></pre>
+<h3 id="exemplo-de-uso---health-check">Exemplo de Uso - Health Check</h3>
+<pre class="hljs"><code><div><span class="hljs-comment"># Status geral</span>
+curl http://localhost:8000/health
+
+<span class="hljs-comment"># Estatísticas do dashboard</span>
+curl http://localhost:8000/health/stats
+
+<span class="hljs-comment"># Análise de data drift</span>
+curl http://localhost:8000/health/drift
+
+<span class="hljs-comment"># Lista de alunos (filtrando por ano)</span>
+curl http://localhost:8000/health/students?ano=2024
+</div></code></pre>
+<h2 id="%F0%9F%93%8A-m%C3%A9tricas-dos-modelos">📊 Métricas dos Modelos</h2>
+<h3 id="classificador-de-risco-xgboost">Classificador de Risco (XGBoost)</h3>
+<ul>
+<li><strong>Modelo:</strong> XGBoost Classifier</li>
+<li><strong>F1-Score:</strong> 0.887</li>
+<li><strong>ROC AUC:</strong> 0.938</li>
+<li><strong>Precisão:</strong> ~0.89</li>
+<li><strong>Recall:</strong> ~0.89</li>
+<li><strong>Features (11):</strong> INDE, IEG, IDA, IPS, IAA, delta_INDE, delta_IEG, delta_IDA, anos_no_programa, tendencia_INDE, pedras_mudadas_total</li>
+<li><strong>Target:</strong> Queda de pedra no próximo ano</li>
+<li><strong>Split:</strong> GroupShuffleSplit (80/20) por aluno para evitar vazamento</li>
+</ul>
+<h3 id="clusteriza%C3%A7%C3%A3o-de-perfis-k-means">Clusterização de Perfis (K-Means)</h3>
+<ul>
+<li><strong>Modelo:</strong> K-Means (k=4)</li>
+<li><strong>Silhouette Score:</strong> 0.352</li>
+<li><strong>Davies-Bouldin Index:</strong> 1.02</li>
+<li><strong>Features (5):</strong> INDE, IEG, IDA, IPS, IAA</li>
+<li><strong>Clusters identificados:</strong>
+<ul>
+<li><strong>Desmotivados Crônicos</strong> — INDE baixo, necessitam intervenção urgente</li>
+<li><strong>Em Risco</strong> — Desempenho abaixo da média, atenção redobrada</li>
+<li><strong>Engajados com Dificuldade</strong> — Boa vontade mas indicadores medianos</li>
+<li><strong>Alto Desempenho</strong> — INDE elevado, exemplos de sucesso</li>
+</ul>
+</li>
+</ul>
+<h3 id="gerador-de-relat%C3%B3rios-llm">Gerador de Relatórios (LLM)</h3>
+<ul>
+<li><strong>Modelo:</strong> Claude Sonnet 4 via OpenRouter</li>
+<li><strong>Formato:</strong> Relatório pedagógico com resumo, análise de indicadores, pontos fortes/atenção e recomendações</li>
+<li><strong>Integração:</strong> Recebe automaticamente risco predito + cluster do aluno</li>
+</ul>
+<h2 id="%F0%9F%A7%AA-testes">🧪 Testes</h2>
+<p>O projeto conta com <strong>151 testes unitários</strong> e <strong>83.75% de cobertura</strong> de código.</p>
+<pre class="hljs"><code><div><span class="hljs-comment"># Rodar todos os testes</span>
+pytest tests/ -v
+
+<span class="hljs-comment"># Verificar cobertura</span>
+pytest tests/ --cov=app --cov=src --cov-report=term-missing
+
+<span class="hljs-comment"># Gerar relatório HTML de cobertura</span>
+pytest tests/ --cov=app --cov=src --cov-report=html
+</div></code></pre>
+<h3 id="cobertura-por-m%C3%B3dulo">Cobertura por Módulo</h3>
+<table>
+<thead>
+<tr>
+<th>Módulo</th>
+<th>Cobertura</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>src/data/</code> (loader, preprocessing, feature_engineering)</td>
+<td>93-98%</td>
+</tr>
+<tr>
+<td><code>src/models/</code> (classifier, clustering)</td>
+<td>71-81%</td>
+</tr>
+<tr>
+<td><code>src/monitoring/</code> (drift)</td>
+<td>97%</td>
+</tr>
+<tr>
+<td><code>app/routes/</code> (health, predict, cluster, enrich)</td>
+<td>78-81%</td>
+</tr>
+<tr>
+<td><code>app/models/schemas.py</code></td>
+<td>95%</td>
+</tr>
+<tr>
+<td><code>app/services/llm_service.py</code></td>
+<td>74%</td>
+</tr>
+<tr>
+<td><code>app/core/</code> (config, logger)</td>
+<td>87-100%</td>
+</tr>
+<tr>
+<td><strong>TOTAL</strong></td>
+<td><strong>83.75%</strong></td>
+</tr>
+</tbody>
+</table>
+<h2 id="%F0%9F%93%88-monitoramento-e-mlops">📈 Monitoramento e MLOps</h2>
+<h3 id="data-drift-evidently-ai">Data Drift (Evidently AI)</h3>
+<p>O sistema inclui monitoramento contínuo de data drift:</p>
+<ul>
+<li><strong><code>GET /health/drift</code></strong> — Métricas de drift entre anos (2022 vs 2023, 2022 vs 2024)</li>
+<li><strong><code>GET /health/drift/report</code></strong> — Relatório visual Evidently (HTML interativo)</li>
+<li><strong><code>GET /health/drift/llm-analysis</code></strong> — Análise interpretativa via LLM</li>
+<li><strong><code>GET /health/quality</code></strong> — Métricas de qualidade (missing values, outliers)</li>
+<li><strong>Features monitoradas:</strong> INDE, IEG, IDA, IPS, IAA</li>
+</ul>
+<h3 id="mlflow-tracking">MLflow Tracking</h3>
+<p>Os modelos são versionados e rastreados via <strong>MLflow</strong>:</p>
+<ul>
+<li><strong>Experiment:</strong> <code>passos_magicos</code></li>
+<li><strong>Runs:</strong> <code>risk_classifier</code>, <code>student_clustering</code></li>
+<li><strong>Métricas logadas:</strong> F1, Precision, Recall, ROC AUC (classificador); Silhouette, Davies-Bouldin (clustering)</li>
+<li><strong>Parâmetros logados:</strong> Hiperparâmetros do modelo, features utilizadas</li>
+<li><strong>UI:</strong> http://localhost:5001 (via Docker)</li>
+</ul>
+<p>Variáveis de ambiente principais:</p>
+<pre class="hljs"><code><div><span class="hljs-comment"># API</span>
+API_HOST=0.0.0.0
+API_PORT=8000
+
+<span class="hljs-comment"># MLflow</span>
+MLFLOW_TRACKING_URI=http://localhost:5001
+
+<span class="hljs-comment"># OpenRouter (LLM)</span>
+OPENROUTER_API_KEY=sk-or-v1-sua-chave
+OPENROUTER_MODEL=anthropic/claude-sonnet-4.6
+
+<span class="hljs-comment"># Modelos</span>
+CLASSIFIER_MODEL=models/classifier.pkl
+CLUSTERING_MODEL=models/clustering_model.pkl
+SCALER=models/scaler.pkl
+</div></code></pre>
+<h2 id="%EF%BF%BD-acesso-%C3%A0-aplica%C3%A7%C3%A3o-local">� Acesso à Aplicação (Local)</h2>
+<p>Esta é uma entrega local. Após seguir o <a href="#-guia-de-instala%C3%A7%C3%A3o-r%C3%A1pida">guia de instalação</a> ou subir via <a href="#-docker">Docker</a>:</p>
+<table>
+<thead>
+<tr>
+<th>Serviço</th>
+<th>URL</th>
+<th>Descrição</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>API</strong></td>
+<td>http://localhost:8000</td>
+<td>FastAPI — endpoints REST</td>
+</tr>
+<tr>
+<td><strong>Docs (Swagger)</strong></td>
+<td>http://localhost:8000/docs</td>
+<td>Documentação interativa da API</td>
+</tr>
+<tr>
+<td><strong>Frontend</strong></td>
+<td>http://localhost:8501</td>
+<td>Streamlit — dashboard, predições, relatórios</td>
+</tr>
+<tr>
+<td><strong>MLflow</strong></td>
+<td>http://localhost:5001</td>
+<td>Tracking de experimentos (via Docker)</td>
+</tr>
+<tr>
+<td><strong>MinIO</strong></td>
+<td>http://localhost:9001</td>
+<td>Console de artefatos (via Docker)</td>
+</tr>
+</tbody>
+</table>
+<h2 id="%EF%BF%BD%F0%9F%93%96-documenta%C3%A7%C3%A3o-adicional">�📖 Documentação Adicional</h2>
+<ul>
+<li><a href="PLANO_PROJETO.md">PLANO_PROJETO.md</a> - Plano detalhado de implementação</li>
+<li><a href="instrucoes.md">instrucoes.md</a> - Instruções originais do Datathon</li>
+</ul>
+<h2 id="%F0%9F%91%A5-time">👥 Time</h2>
+<p>Desenvolvido para o Datathon de Engenharia de Machine Learning - 5MLET.</p>
+<h2 id="%F0%9F%93%84-licen%C3%A7a">📄 Licença</h2>
+<p>Este projeto foi desenvolvido para fins educacionais.</p>
+<h2 id="%F0%9F%99%8F-agradecimentos">🙏 Agradecimentos</h2>
+<ul>
+<li>ONG Passos Mágicos</li>
+<li>Professores da pós-graduação</li>
+<li>OpenRouter pelo acesso aos LLMs</li>
+</ul>
+
+</body>
+</html>
