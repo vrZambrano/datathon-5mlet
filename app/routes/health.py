@@ -10,6 +10,7 @@ import json
 import pandas as pd
 import numpy as np
 import joblib
+from typing import Optional
 from app.core.config import get_settings
 from app.models.schemas import HealthResponse
 
@@ -18,6 +19,19 @@ router = APIRouter()
 settings = get_settings()
 
 _start_time = time.time()
+
+
+def _parse_optional_int(value: Optional[str]) -> Optional[int]:
+    """Converte query string opcional em int; valores vazios viram None."""
+    if value is None:
+        return None
+    text = str(value).strip()
+    if not text:
+        return None
+    try:
+        return int(text)
+    except (TypeError, ValueError):
+        return None
 
 
 @router.get("", response_model=HealthResponse)
@@ -229,7 +243,7 @@ async def get_stats():
 
 
 @router.get("/students")
-async def get_students(ano: int = None):
+async def get_students(ano: Optional[str] = None):
     """
     Retorna lista de alunos com seus indicadores para seleção no frontend.
 
@@ -242,8 +256,9 @@ async def get_students(ano: int = None):
             return {"students": []}
 
         # Se ano não especificado, usa todos os anos
-        if ano:
-            df_year = df[df["ano"] == ano]
+        ano_int = _parse_optional_int(ano)
+        if ano_int:
+            df_year = df[df["ano"] == ano_int]
         else:
             df_year = df
 

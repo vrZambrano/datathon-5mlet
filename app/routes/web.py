@@ -42,6 +42,19 @@ def _safe(val, default=0.0):
         return default
 
 
+def _parse_optional_int(value: Optional[str]) -> Optional[int]:
+    """Converte query string opcional em int; valores vazios viram None."""
+    if value is None:
+        return None
+    text = str(value).strip()
+    if not text:
+        return None
+    try:
+        return int(text)
+    except (TypeError, ValueError):
+        return None
+
+
 def _risk_class(prob: float) -> str:
     if prob >= 0.7:
         return "ALTO"
@@ -339,13 +352,14 @@ async def partial_chart_inde(request: Request):
 @router.get("/partials/student-table", response_class=HTMLResponse)
 async def partial_student_table(
     request: Request,
-    ano: Optional[int] = None,
+    ano: Optional[str] = None,
     pedra: Optional[str] = None,
     cluster: Optional[str] = None,
     limit: int = 100,
     offset: int = 0,
 ):
-    students, anos_disp = _get_students(ano)
+    ano_int = _parse_optional_int(ano)
+    students, anos_disp = _get_students(ano_int)
     if pedra and pedra != "Todos":
         students = [s for s in students if s.get("pedra") == pedra]
     if cluster and cluster != "Todos":
@@ -360,7 +374,7 @@ async def partial_student_table(
             "total": total,
             "offset": offset,
             "limit": limit,
-            "ano": ano,
+            "ano": ano_int,
             "pedra": pedra,
             "cluster": cluster,
         },
@@ -374,11 +388,12 @@ async def partial_student_table(
 @router.get("/partials/student-options", response_class=HTMLResponse)
 async def partial_student_options(
     request: Request,
-    ano: Optional[int] = None,
+    ano: Optional[str] = None,
     pedra: Optional[str] = None,
     cluster: Optional[str] = None,
 ):
-    students, _ = _get_students(ano)
+    ano_int = _parse_optional_int(ano)
+    students, _ = _get_students(ano_int)
     if pedra and pedra != "Todos":
         students = [s for s in students if s.get("pedra") == pedra]
     if cluster and cluster != "Todos":
@@ -393,12 +408,13 @@ async def partial_student_options(
 async def partial_student_data(
     request: Request,
     ra: Optional[str] = None,
-    ano: Optional[int] = None,
+    ano: Optional[str] = None,
 ):
     """Retorna partial Alpine.js que pre-preenche os campos do formulário."""
     if not ra:
         return HTMLResponse("")
-    students, _ = _get_students(ano)
+    ano_int = _parse_optional_int(ano)
+    students, _ = _get_students(ano_int)
     student = next((s for s in students if str(s.get("ra")) == str(ra)), None)
     if not student:
         return HTMLResponse("")
